@@ -10,9 +10,9 @@ generating or changing bytecode while a test is running. TeaVM prepares Java
 code ahead of time for JavaScript, so that runtime machinery is not available
 in a browser test.
 
-Mockatcha provides familiar Mockito-style interface mocking for tests compiled
-with TeaVM. It generates each mock while TeaVM compiles the test, then uses a
-small Java runtime to record calls and return the configured answers.
+Mockatcha provides familiar Mockito-style mocking for tests compiled with
+TeaVM. It generates each mock while TeaVM compiles the test, then uses a small
+Java runtime to record calls and return the configured answers.
 
 This guide starts with one small test and introduces stubbing, matching, and
 verification as they become useful. The
@@ -46,8 +46,9 @@ ordinary Java, and the test runs in a real browser through TeaVM's test runner.
   an application framework.
 - **Stay independent of Sarto and Verrai.** Any Java library tested with TeaVM
   can use Mockatcha.
-- **Make the current boundary honest.** The first release mocks interfaces. It
-  does not pretend to support concrete classes or static methods yet.
+- **Make the current boundary honest.** Mockatcha mocks interfaces and ordinary
+  classes. It does not pretend to support static methods, constructors, or
+  final classes.
 
 ## Contents
 
@@ -57,12 +58,13 @@ ordinary Java, and the test runs in a real browser through TeaVM's test runner.
 | Start using it | [First browser test](#your-first-browser-test) |
 | Describe behaviour | [Return values](#choose-what-a-mock-returns) · [Flexible arguments](#match-flexible-arguments) · [Answers and failures](#calculate-an-answer-or-report-a-failure) · [Changing results](#return-different-results-over-time) |
 | Check behaviour | [Verify calls](#verify-important-calls) · [Call history](#inspect-or-clear-call-history) |
+| Keep real behaviour | [Mock a class](#mock-an-ordinary-class) · [Spy on an object](#keep-real-behaviour-with-a-spy) · [Arrange before calling](#arrange-an-answer-before-the-call-runs) |
 | See it in context | [Timesheet example](#the-timesheet-example) · [How generation works](#how-the-mock-is-created) |
 | Reference | [Current coverage](#current-coverage) · [Modules](#choose-modules) · [Maven setup](#add-mockatcha-to-a-teavm-test-suite) · [Build](#build-this-repository) |
 
 ## The three core ideas
 
-A mock is a generated implementation of a Java interface. It stands in for a
+A mock is a generated stand-in for a Java interface or class. It replaces a
 collaborator such as a repository or remote service.
 
 Stubbing tells that mock what to return for a particular call. Calls without a
@@ -71,13 +73,13 @@ matching stub return Java's usual empty value: `null`, `false`, or zero.
 Verification checks whether an important call happened. It is most useful for
 observable effects, such as saving a record or sending a notification.
 
-The class being tested is still real. Mockatcha replaces only the interfaces
+The class being tested is still real. Mockatcha replaces only the collaborators
 passed to it.
 
 ## Your first browser test
 
-Suppose a greeting component obtains its text through this application
-boundary:
+Most tests start with an interface boundary. Suppose a greeting component
+obtains its text through this one:
 
 ```java
 public interface GreetingService {
@@ -227,6 +229,83 @@ List<Invocation> calls = details.getInvocations();
 removes both calls and stubbing. These operations are useful for a deliberately
 shared fixture, although small tests normally create fresh mocks instead.
 
+## Mock an ordinary class
+
+Not every boundary is an interface. `mock` accepts a class as well:
+
+```java
+PricingService pricing = mock(PricingService.class);
+when(pricing.total("A-17")).thenReturn(42);
+```
+
+Mockatcha generates a subclass while TeaVM compiles the test, so the mock really
+is a `PricingService` and can be passed anywhere one is expected. Its
+no-argument constructor runs; every public and protected method is replaced.
+
+Three limits follow from generating a subclass, and Mockatcha does not hide
+them:
+
+- a `final` class, an enum, a record, or a class without a no-argument
+  constructor is rejected while TeaVM compiles the test, naming the type and the
+  rule it failed;
+- `static`, `private`, and `final` methods keep their real behaviour, because a
+  subclass cannot override them; and
+- `equals`, `hashCode`, and `toString` answer by identity and with a fixed
+  description. They are neither recorded nor stubbed, so logging a mock never
+  runs real code.
+
+Prefer an interface where the design allows one. Class mocking exists for
+boundaries you do not control or have not yet extracted.
+
+## Keep real behaviour with a spy
+
+A mock replaces every method. A spy keeps a real object and replaces only the
+calls a test names, which suits a working collaborator better than rebuilding
+its behaviour in stubs:
+
+```java
+InMemoryTimesheetRepository real = new InMemoryTimesheetRepository();
+InMemoryTimesheetRepository timesheets = spy(InMemoryTimesheetRepository.class, real);
+
+when(timesheets.findDraft("A-17")).thenReturn(new Timesheet("A-17", 46));
+```
+
+`findDraft` now answers from the stub. Every other call reaches `real` and is
+still recorded, so `verify(timesheets).markSubmitted("A-17")` works as usual.
+
+The class is a separate argument because TeaVM must know it while it compiles
+the call. An interface and one of its implementations work too:
+
+```java
+Notifier notifier = spy(Notifier.class, new EmailNotifier());
+```
+
+Two things are worth knowing before relying on a spy:
+
+- the spy is not the object it delegates to, so `==` distinguishes them; and
+- a real method that calls another method on itself is not intercepted, because
+  `this` inside that method is the delegate. Stubbing `currency()` does not
+  change what `summary()` sees when `summary()` calls it.
+
+The second point is the cost of delegation. Where it matters, mock the
+collaborator instead of spying on it.
+
+## Arrange an answer before the call runs
+
+`when(spy.currency())` has to evaluate `spy.currency()` to know which call is
+being described, which runs the real method once. When that method is slow,
+destructive, or unavailable in a browser, arrange the answer first:
+
+```java
+doReturn("EUR").when(pricingSpy).currency();
+doThrow(new IllegalStateException("offline")).when(pricingSpy).currency();
+doAnswer(call -> call.argument(0) + "!").when(pricingSpy).describe(anyString());
+doNothing().when(pricingSpy).record("audited");
+```
+
+The real method never runs. These work on mocks too, where they are simply an
+alternative spelling.
+
 ## The timesheet example
 
 The example module tests a real `TimesheetService` while replacing its storage
@@ -235,9 +314,12 @@ and negative verification, matchers, calculated answers, changing results, and
 failures.
 
 Start with
-[`TimesheetServiceTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetServiceTest.java).
-The separate [example guide](mockatcha-examples/README.md) explains the order
-and how to run only that module.
+[`TimesheetServiceTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetServiceTest.java),
+then
+[`TimesheetSpyTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetSpyTest.java)
+for class mocks and spies. The separate
+[example guide](mockatcha-examples/README.md) explains the order and how to run
+only that module.
 
 ## How the mock is created
 
@@ -246,34 +328,42 @@ visits the abstract methods of that interface and Mockatcha supplies an
 implementation for each one. The generated method records its arguments and
 asks the small Mockatcha runtime for a configured answer.
 
+A class cannot go through that path, because TeaVM's proxy generator supplies
+bodies only for methods it finds abstract, and a concrete class has none.
+Mockatcha therefore generates the whole subclass with the compiler's own ASM
+and submits it to TeaVM. The generated bodies are just as thin: pack the
+arguments, ask the runtime, then either call the real object or convert the
+answer. The reasoning behind that choice, and the seam that was tried first, is
+recorded in the [class mocking and spies design
+record](CLASS_MOCKING_AND_SPIES.md).
+
 Nothing generates bytecode in the browser. There is no Java agent, reflective
 class-path scan, CDI container, or DOM dependency. This is why Mockatcha can
 keep the Mockito-style test API while fitting TeaVM's ahead-of-time build.
 
-The interface class passed to `mock` must be a compile-time constant, as it is
-in `mock(ProfileRepository.class)`.
+The class passed to `mock` or `spy` must be a compile-time constant, as it is in
+`mock(ProfileRepository.class)`.
 
 ## Current coverage
 
-The first milestone supports:
+Mockatcha supports:
 
-- Java interfaces;
+- Java interfaces and ordinary classes;
+- delegation spies over either;
 - object, primitive, and `void` methods;
-- overloaded methods;
+- overloaded, inherited, protected, and generic bridge methods;
 - exact arguments and the initial matcher set;
 - returned values, calculated answers, exceptions, and consecutive answers;
+- `doReturn`, `doThrow`, `doAnswer`, and `doNothing` for arranging an answer
+  before the call runs;
 - verification with exact counts and `never`; and
 - call-history inspection, clearing, and reset.
 
-Concrete classes, static methods, constructors, spies, argument captors, and
+Static methods, constructors, final classes, final and private methods,
+package-private methods, argument captors, a single-argument `spy(T)`, and
 asynchronous verification are later work. Those features should be added only
-when they can preserve the same small, predictable TeaVM runtime.
-
-The proposed class-mocking and delegation-spy implementation is specified in
-the [class mocking and spies handoff](CLASS_MOCKING_AND_SPIES.md). It records
-the supported first boundary, TeaVM generation options, runtime changes, test
-matrix, and delivery sequence; it does not describe features available in the
-current release.
+when they can preserve the same small, predictable TeaVM runtime. The
+[design record](CLASS_MOCKING_AND_SPIES.md) explains what each would require.
 
 ## Choose modules
 
@@ -283,7 +373,10 @@ current release.
 | `mockatcha-examples` | Build-checked examples for learning; applications do not depend on it. |
 
 Mockatcha has no Sarto, Verrai, CDI, Mockito, Byte Buddy, or browser DOM
-dependency. The core production dependency is TeaVM's metaprogramming API.
+dependency. The only production dependency is TeaVM's metaprogramming API.
+Class mocking also uses TeaVM's introspection API and its relocated ASM while
+the compiler runs; both are already on the compiler's classpath, so neither is
+passed on to a consumer.
 
 ## Add Mockatcha to a TeaVM test suite
 

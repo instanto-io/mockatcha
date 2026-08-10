@@ -16,6 +16,17 @@ Its tests introduce the ideas in this order:
 6. return different values from consecutive calls; and
 7. make a collaborator fail so the service's failure behaviour is explicit.
 
+Then read
+[`TimesheetSpyTest`](src/test/java/io/instanto/mockatcha/examples/TimesheetSpyTest.java),
+which uses a working `InMemoryTimesheetRepository` instead of stubbing storage
+from scratch. Its tests show:
+
+1. a spy that keeps real behaviour and still records calls;
+2. replacing only the one call a test needs to control;
+3. `doThrow`, which arranges a failure without running the real method first;
+   and
+4. mocking that same concrete class when no real behaviour is wanted.
+
 Run the examples from the repository root with:
 
 ```bash

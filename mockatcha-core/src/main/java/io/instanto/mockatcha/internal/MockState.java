@@ -8,9 +8,14 @@ import java.util.List;
 /** Runtime state captured by a generated mock implementation. */
 public final class MockState {
 
+  private final String description;
   private Object mock;
   private final List<Invocation> invocations = new ArrayList<>();
   private final List<Stub> stubs = new ArrayList<>();
+
+  MockState(String description) {
+    this.description = description;
+  }
 
   void attach(Object mock) {
     this.mock = mock;
@@ -18,6 +23,10 @@ public final class MockState {
 
   Object mock() {
     return mock;
+  }
+
+  String description() {
+    return description;
   }
 
   void record(Invocation invocation) {

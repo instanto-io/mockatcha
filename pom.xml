@@ -39,6 +39,16 @@
       </dependency>
       <dependency>
         <groupId>org.teavm</groupId>
+        <artifactId>teavm-extension-apis</artifactId>
+        <version>${teavm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-relocated-libs-asm</artifactId>
+        <version>${teavm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.teavm</groupId>
         <artifactId>teavm-classlib</artifactId>
         <version>${teavm.version}</version>
       </dependency>

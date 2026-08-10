@@ -19,6 +19,20 @@
       <groupId>org.teavm</groupId>
       <artifactId>teavm-metaprogramming-api</artifactId>
     </dependency>
+    <!--
+      Class mocking builds an abstract shim while TeaVM compiles a test. Both of these run inside
+      the compiler, which already supplies them, so neither is passed on to consumers.
+    -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-extension-apis</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-relocated-libs-asm</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>
