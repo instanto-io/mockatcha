@@ -269,6 +269,12 @@ Concrete classes, static methods, constructors, spies, argument captors, and
 asynchronous verification are later work. Those features should be added only
 when they can preserve the same small, predictable TeaVM runtime.
 
+The proposed class-mocking and delegation-spy implementation is specified in
+the [class mocking and spies handoff](CLASS_MOCKING_AND_SPIES.md). It records
+the supported first boundary, TeaVM generation options, runtime changes, test
+matrix, and delivery sequence; it does not describe features available in the
+current release.
+
 ## Choose modules
 
 | Module | Use it for |
