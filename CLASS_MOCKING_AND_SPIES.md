@@ -4,9 +4,27 @@ Mockatcha generates mocks while TeaVM compiles a test. The first release handled
 Java interfaces. It now also handles ordinary classes and delegation spies.
 
 This document records what was built, the TeaVM constraints that shaped it, the
-supported boundary, and what remains deferred. It replaces the implementation
-handoff that preceded the work; the delivery sequence it described has been
-completed.
+supported boundary, what remains deferred, and which parts of Mockito are worth
+porting next. It replaces the implementation handoff that preceded the work; the
+delivery sequence it described has been completed.
+
+## Where the project stands
+
+| Area | State |
+| --- | --- |
+| Interface mocking | Done, unchanged by later work |
+| Class mocking | Done, through a generated subclass |
+| Delegation spies over classes and interfaces | Done |
+| `doReturn` / `doThrow` / `doAnswer` / `doNothing` | Done |
+| Matchers: `any`, every primitive, `eq`, `isNull`, `isNotNull`, `argThat` | Done |
+| Verification: `times`, `never` | Done |
+| Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
+| Jasmine-shaped layer: name-based configuration, call inspection, fake clock, shape matchers | Done, in the `oolong` module |
+| Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
+
+The four milestones the original handoff set out — prove subclass generation,
+add class mocks, add delegation spies, add safe spy stubbing — are complete, in
+that order, each with browser tests.
 
 ## What a test can now do
 
@@ -230,7 +248,64 @@ TeaVM's introspection. A deliberately unsupported metaprogram cannot live in a
 green browser test source set, so the compile failure itself is checked by hand;
 a Maven Invoker module would be needed to automate it.
 
+The Jasmine-shaped layer has its own tests in the `oolong` module:
+`OolongSpyTeaVmTest`, `ClockTeaVmTest`, and `OolongMatchersTeaVmTest`.
+
+## What to port from Mockito next
+
+Mockatcha covers the Mockito that most tests actually use. What follows is the
+rest of Mockito's surface, sorted by what it would cost here rather than by how
+prominent it is in Mockito's own documentation. TeaVM changes those costs
+considerably, in both directions.
+
+### Worth doing next: runtime only, and useful straight away
+
+None of these need the generator to change. They are new behaviour in
+`MockRuntime` and new entry points on `Mockatcha`.
+
+| Feature | Notes |
+| --- | --- |
+| `atLeast(n)`, `atMost(n)`, `atLeastOnce()`, `only()` | More `VerificationMode` implementations beside `times` and `never`. An afternoon, and it removes the most common reason to fall back on reading call history. |
+| `ArgumentCaptor` | A matcher that records what it matched, then `getValue()` and `getAllValues()`. Fits the existing matcher machinery exactly, and is the highest-value item here: inspecting an argument a test could not predict currently means reading `mockingDetails` by hand. |
+| `verifyNoInteractions`, `verifyNoMoreInteractions` | Needs an "already verified" flag on `Invocation` and a pass over the recorded list. |
+| `AdditionalMatchers`: `and`, `or`, `not`, `gt`, `lt`, `geq`, `leq`, `aryEq` | Thin wrappers over `argThat`. Cheap, and they compose with the matchers Oolong already added. |
+| `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf` | A handful of `Answer` implementations. `delegatesTo` is already covered by `spy(Class, T)` on an interface. |
+| `BDDMockito`: `given` / `willReturn` / `then` / `should` | An alias layer over what exists. Worth it only if the team writes in that style. |
+| Mock naming, as in `withSettings().name(...)` | `MockState` already carries a description for `toString`; this only needs a way to set it. |
+
+### Worth doing, with a design decision attached
+
+| Feature | What it needs |
+| --- | --- |
+| `InOrder` verification | `Invocation` has no global sequence number, so calls across two mocks cannot be ordered. Adding a monotonic counter at record time is easy; the design question is how strict `inOrder` should be about intervening calls, given Mockito's is not strict by default. |
+| Strict stubbing and `UnnecessaryStubbingException` | Track whether each stub was ever matched, then report the unused ones. The runtime side is small. The open question is what triggers the report: Mockito uses a JUnit rule or runner, and how those compose with `TeaVMTestRunner` needs checking before the API is designed. |
+| `thenCallRealMethod()` | On a spy this already exists as Oolong's `andCallThrough`. On a class mock with no delegate it means calling `super`, which the generated subclass would have to emit as a second call path. A day in `SubclassGenerator`, and worth it only if there is demand. |
+| Default answers, as in `mock(X.class, RETURNS_SMART_NULLS)` | A second `@Meta` parameter and a default `Answer` on `MockState`. `RETURNS_SMART_NULLS` is the one worth having: a null returned by an unstubbed mock is the least helpful failure a browser test can produce. |
+| `RETURNS_DEEP_STUBS` | Unusually tractable here, because return types are known while TeaVM compiles, so nested mocks could be generated rather than created reflectively. Also unusually easy to abuse: it encourages exactly the deep object graphs that make tests brittle. |
+| `verify(mock, timeout(100))` | Mockito waits on real time. Oolong's clock makes a deterministic version possible, but it would mean something different from Mockito's, so it needs a different name rather than a misleading one. |
+
+### Needs machinery Mockatcha does not have
+
+| Feature | Why, and whether it is reachable |
+| --- | --- |
+| `@Mock`, `@Captor`, `@InjectMocks` | `MockitoAnnotations.openMocks(this)` reads the test class reflectively, and TeaVM strips reflection. A metaprogram can enumerate the fields of a class known at compile time, so `openMocks(MyTest.class, this)` is reachable while `openMocks(this)` is not. `@InjectMocks` additionally has to choose a constructor, which is more guesswork than it is worth. |
+| `mockStatic`, `mockConstruction` | On the JVM these need an agent. In TeaVM a `ClassHolderTransformer` plugin could rewrite `invokestatic` and `new` at the call sites reachable from a test, which is genuinely more tractable than the JVM equivalent. It is also invasive, affects the whole compiled program, and is a project of its own rather than a feature. |
+| Final classes, and final or private methods | A subclass cannot override them and TeaVM offers no inline redefinition, so the only route is the same call-site rewriting. |
+| Constructor-free allocation | Mockito uses Objenesis and JVM-specific tricks. TeaVM has no equivalent, so a mocked class will keep needing a no-argument constructor. |
+| Self-intercepting spies | Requires running inherited method bodies on the generated subclass with the original object's fields copied across. Field copying is error-prone and constructor bypassing is unavailable. |
+| A single-argument `spy(T)` | Needs the call site to expose the concrete type as a compile-time constant, which it does not do reliably. Worth revisiting only if a prototype proves it stable across TeaVM builds. |
+| Serialisable mocks, `MockitoSession`, plugin switching | No meaning in a browser test. |
+
+### A reasonable next tranche
+
+`ArgumentCaptor`, the missing verification modes, `verifyNoMoreInteractions`,
+and `AdditionalMatchers` together need no generator changes and close most of
+the gap a test written against Mockito would notice.
+
 ## Explicitly deferred work
+
+The following need different machinery or a separate design, and each is
+covered in the tables above:
 
 - static and constructor mocking;
 - final classes and final or private methods;
@@ -238,8 +313,7 @@ a Maven Invoker module would be needed to automate it.
 - constructor-free allocation;
 - field copying and self-intercepting spies;
 - a single-argument `spy(T)`;
-- argument captors;
-- native JavaScript classes; and
+- annotation-driven mock injection; and
 - asynchronous or timeout-based verification.
 
 Deferring these is not an API dead end. The generated-subclass seam and the

@@ -10,7 +10,7 @@
   <packaging>pom</packaging>
 
   <name>Mockatcha</name>
-  <description>Mockito-shaped interface mocking generated ahead of time for TeaVM tests.</description>
+  <description>Mockito-shaped mocking generated ahead of time for TeaVM tests.</description>
   <url>https://github.com/cstainton/mockatcha</url>
 
   <properties>
@@ -22,6 +22,7 @@
 
   <modules>
     <module>mockatcha-core</module>
+    <module>oolong</module>
     <module>mockatcha-examples</module>
   </modules>
 
@@ -40,6 +41,11 @@
       <dependency>
         <groupId>org.teavm</groupId>
         <artifactId>teavm-extension-apis</artifactId>
+        <version>${teavm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-jso</artifactId>
         <version>${teavm.version}</version>
       </dependency>
       <dependency>

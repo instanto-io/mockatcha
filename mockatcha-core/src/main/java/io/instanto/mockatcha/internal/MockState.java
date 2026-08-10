@@ -68,6 +68,11 @@ public final class MockState {
     return null;
   }
 
+  /** Drops every stub that can answer a call of this method name, whatever its arguments. */
+  void removeStubs(String methodName) {
+    stubs.removeIf(stub -> stub.pattern().methodName().equals(methodName));
+  }
+
   void clearInvocations() {
     invocations.clear();
   }

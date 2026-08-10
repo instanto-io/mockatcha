@@ -260,7 +260,42 @@ public final class MockRuntime {
       argumentMatchers = new ArrayList<>(MATCHERS);
       MATCHERS.clear();
     }
-    return new InvocationPattern(method, argumentMatchers);
+    return InvocationPattern.of(method, argumentMatchers);
+  }
+
+  /**
+   * Arranges answers for a method chosen by name rather than by evaluating a call.
+   *
+   * <p>Passing null arguments matches every call of that name. This is the addressing scheme
+   * Jasmine-shaped APIs use; the everyday Mockito-shaped path is {@link #beginStubbing}.
+   */
+  public static void arrangeByName(
+      Object mock, String methodName, Object[] arguments, List<Answer<?>> answers) {
+    MockState state = requireState(mock);
+    Objects.requireNonNull(methodName, "methodName");
+    Stub stub =
+        state.addStub(
+            arguments == null
+                ? InvocationPattern.ofName(methodName)
+                : InvocationPattern.ofName(methodName, exactMatchers(arguments)));
+    for (Answer<?> answer : answers) {
+      stub.add(answer);
+    }
+  }
+
+  /** Removes every stub arranged for a method name, so the mock answers as if never stubbed. */
+  public static void removeStubsByName(Object mock, String methodName) {
+    requireState(mock).removeStubs(Objects.requireNonNull(methodName, "methodName"));
+  }
+
+  private static List<RegisteredMatcher> exactMatchers(Object[] arguments) {
+    List<RegisteredMatcher> matchers = new ArrayList<>(arguments.length);
+    for (Object argument : arguments) {
+      matchers.add(
+          new RegisteredMatcher(
+              actual -> Objects.deepEquals(argument, actual), String.valueOf(argument)));
+    }
+    return matchers;
   }
 
   private static MockState requireState(Object mock) {

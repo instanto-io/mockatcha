@@ -363,13 +363,37 @@ Static methods, constructors, final classes, final and private methods,
 package-private methods, argument captors, a single-argument `spy(T)`, and
 asynchronous verification are later work. Those features should be added only
 when they can preserve the same small, predictable TeaVM runtime. The
-[design record](CLASS_MOCKING_AND_SPIES.md) explains what each would require.
+[design record](CLASS_MOCKING_AND_SPIES.md) explains what each would require and
+which parts of Mockito are worth porting next.
+
+## Control the clock, and other Jasmine ideas
+
+Browser tests need one thing Mockito never had to provide: control over time.
+The [`oolong`](oolong/README.md) module adds a fake clock that intercepts
+`setTimeout`, `setInterval`, `requestAnimationFrame`, and `Date.now`, so polling
+and debouncing can be tested without sleeping:
+
+```java
+clock().install();
+try {
+    component.startPolling();
+    clock().tick(1000);
+    verify(feed, times(4)).refresh();
+} finally {
+    clock().uninstall();
+}
+```
+
+Oolong also configures a method by name rather than by calling it, and reads a
+mock's call record as data. It works on the same objects as the Mockito-shaped
+API, in the same test.
 
 ## Choose modules
 
 | Module | Use it for |
 | --- | --- |
 | `mockatcha-core` | The public mocking API, compile-time generator, and small runtime. |
+| `oolong` | A [Jasmine-shaped layer](oolong/README.md): configure by method name, read the call record, and drive a fake clock. Depends on TeaVM's JavaScript interop. |
 | `mockatcha-examples` | Build-checked examples for learning; applications do not depend on it. |
 
 Mockatcha has no Sarto, Verrai, CDI, Mockito, Byte Buddy, or browser DOM
