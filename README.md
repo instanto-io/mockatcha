@@ -591,8 +591,6 @@ The type passed to `mock` or `spy` is written out in full at the call site:
 `mock(ProfileRepository.class)`. Anything outside these rules is reported while
 the test compiles, naming the type and the rule that applied.
 
-The [design record](CLASS_MOCKING_AND_SPIES.md) covers what is planned next.
-
 ## Modules
 
 | Module | What it is |
