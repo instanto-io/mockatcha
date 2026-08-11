@@ -10,9 +10,27 @@ final class Stub {
   private final InvocationPattern pattern;
   private final List<Answer<?>> answers = new ArrayList<>();
   private int answerIndex;
+  private boolean used;
+  private boolean lenient;
 
   Stub(InvocationPattern pattern) {
     this.pattern = pattern;
+  }
+
+  void markUsed() {
+    used = true;
+  }
+
+  boolean isUsed() {
+    return used;
+  }
+
+  void makeLenient() {
+    lenient = true;
+  }
+
+  boolean isLenient() {
+    return lenient;
   }
 
   InvocationPattern pattern() {

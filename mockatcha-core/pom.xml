@@ -43,10 +43,12 @@
       <artifactId>teavm-junit</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- StrictTest is a base class a consumer's own tests extend, so JUnit is compiled
+         against here and supplied by the test suite that uses it. -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 

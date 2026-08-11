@@ -10,6 +10,7 @@ import static org.teavm.metaprogramming.Metaprogramming.proxy;
 
 import io.instanto.mockatcha.internal.CountingMode;
 import io.instanto.mockatcha.internal.InOrderImpl;
+import io.instanto.mockatcha.internal.LenientStubberImpl;
 import io.instanto.mockatcha.internal.MockRuntime;
 import io.instanto.mockatcha.internal.MockState;
 import io.instanto.mockatcha.internal.StubberImpl;
@@ -139,6 +140,30 @@ public final class Mockatcha {
   /** Expects these mocks to have been called at all. */
   public static void verifyNoInteractions(Object... mocks) {
     MockRuntime.verifyNoInteractions(mocks);
+  }
+
+  /**
+   * Arranges a stub that {@link #validateStubbing} will not insist on.
+   *
+   * <pre>{@code
+   * lenient().when(clock.now()).thenReturn(FIXED_TIME);
+   * }</pre>
+   */
+  public static LenientStubber lenient() {
+    return new LenientStubberImpl();
+  }
+
+  /**
+   * Fails when a stub was arranged and no call ever matched it.
+   *
+   * <p>With no arguments, checks every mock created since the last such check, which scopes it to
+   * one test when called from an {@code @After} method. Naming mocks explicitly checks only those.
+   *
+   * <p>The failure lists the calls that were made to the same method, which is usually where the
+   * mismatch shows itself.
+   */
+  public static void validateStubbing(Object... mocks) {
+    MockRuntime.validateStubbing(mocks);
   }
 
   /**

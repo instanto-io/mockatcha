@@ -26,6 +26,7 @@ delivery sequence it described has been completed.
 | Detection of matchers left over from a call on something that is not a mock | Done |
 | `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf`, typed `answer` | Done |
 | `BDDMockatcha`: `given` / `willReturn` / `then` / `should` | Done |
+| Unused-stub reporting, `lenient()`, and the `StrictTest` base class | Done |
 | Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
 | Jasmine-shaped layer: name-based configuration, call inspection, fake clock, matchers including `objectContaining` | Done, in the `oolong` module |
 | Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
@@ -282,7 +283,6 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | What it needs |
 | --- | --- |
-| Strict stubbing and `UnnecessaryStubbingException` | Track whether each stub was ever matched, then report the unused ones. The runtime side is small. The open question is what triggers the report: Mockito uses a JUnit rule or runner, and how those compose with `TeaVMTestRunner` needs checking before the API is designed. |
 | `thenCallRealMethod()` | On a spy this already exists as Oolong's `andCallThrough`. On a class mock with no delegate it means calling `super`, which the generated subclass would have to emit as a second call path. A day in `SubclassGenerator`, and worth it only if there is demand. |
 | Default answers, as in `mock(X.class, RETURNS_SMART_NULLS)` | A second `@Meta` parameter and a default `Answer` on `MockState`. `RETURNS_SMART_NULLS` is the one worth having: a null returned by an unstubbed mock is the least helpful failure a browser test can produce. |
 | `RETURNS_DEEP_STUBS` | Unusually tractable here, because return types are known while TeaVM compiles, so nested mocks could be generated rather than created reflectively. Also unusually easy to abuse: it encourages exactly the deep object graphs that make tests brittle. |
@@ -303,8 +303,32 @@ None of these need the generator to change. They are new behaviour in
 
 ### A reasonable next tranche
 
-Strict stubbing is the next item, and it needs a decision rather than only code.
-Everything cheaper than it is done.
+Everything that needs no new machinery is done. What is left is in the table
+below, and each entry needs either a TeaVM capability Mockatcha does not have or
+a change to TeaVM itself.
+
+The one item worth costing is **failing at the call rather than at the end of
+the test**. Reporting an unused stub after the fact is useful; Mockito's strict
+mode also fails the moment a call finds no stub while a stub for the same method
+exists with different arguments, which points at the mistake directly. That
+needs a strictness flag consulted during dispatch, and a decision about whether
+it is per-mock or global.
+
+### What was learned about the test runner
+
+JUnit rules do not run under `TeaVMTestRunner`. `TestEntryPointTransformer`
+generates the bodies of `TestEntryPoint.before()` and `after()` by emitting
+direct calls to each `@Before` and `@After` method it finds, walking the
+superclass chain; `@Rule` fields are never read.
+
+Supporting rules would mean teaching that transformer to read `@Rule` fields,
+emit a `Statement` subclass wrapping the test call, and invoke
+`TestRule.apply(...)` — the same emit-a-class pattern it already uses for
+launchers. `MethodRule` is a different matter, because `FrameworkMethod` wraps
+`java.lang.reflect.Method`, which TeaVM does not support.
+
+Because the transformer does walk superclasses, a base class gives the same
+per-test hook a rule would, which is what `StrictTest` is.
 
 Four things learned while building the verification work are worth keeping in
 mind for the rest:

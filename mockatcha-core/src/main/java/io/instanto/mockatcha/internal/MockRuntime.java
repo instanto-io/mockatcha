@@ -7,6 +7,7 @@ import io.instanto.mockatcha.OngoingStubbing;
 import io.instanto.mockatcha.VerificationContext;
 import io.instanto.mockatcha.VerificationMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,11 @@ public final class MockRuntime {
 
   private static final Map<Object, MockState> STATES = new IdentityHashMap<>();
   private static final List<RegisteredMatcher> MATCHERS = new ArrayList<>();
+  private static final List<Object> UNCHECKED_MOCKS = new ArrayList<>();
   private static LastInvocation lastInvocation;
   private static VerificationRequest verification;
   private static StubbingRequest stubbing;
+  private static boolean nextStubIsLenient;
 
   private MockRuntime() {}
 
@@ -51,6 +54,7 @@ public final class MockRuntime {
     Objects.requireNonNull(state, "state");
     state.attach(mock);
     STATES.put(mock, state);
+    UNCHECKED_MOCKS.add(mock);
   }
 
   /** Rejects a spy created without a delegate. */
@@ -128,7 +132,21 @@ public final class MockRuntime {
     LastInvocation captured = lastInvocation;
     lastInvocation = null;
     captured.state.remove(captured.invocation);
-    return new OngoingStubbingImpl<>(captured.state.addStub(captured.pattern));
+    return new OngoingStubbingImpl<>(newStub(captured.state, captured.pattern));
+  }
+
+  /** Marks the next stub as one no test needs to use. */
+  public static void nextStubIsLenient() {
+    nextStubIsLenient = true;
+  }
+
+  private static Stub newStub(MockState state, InvocationPattern pattern) {
+    Stub stub = state.addStub(pattern);
+    if (nextStubIsLenient) {
+      nextStubIsLenient = false;
+      stub.makeLenient();
+    }
+    return stub;
   }
 
   public static void beginVerification(Object mock, VerificationMode mode) {
@@ -219,7 +237,7 @@ public final class MockRuntime {
       throw new IllegalStateException(
           "The call after when(mock) must be made on the same mock");
     }
-    Stub stub = state.addStub(pattern);
+    Stub stub = newStub(state, pattern);
     for (Answer<?> answer : request.answers) {
       stub.add(answer);
     }
@@ -293,6 +311,48 @@ public final class MockRuntime {
     requireNoPendingMatchers("validateUsage()");
   }
 
+  /**
+   * Fails when a stub was arranged on these mocks and no call ever matched it.
+   *
+   * <p>With no mocks, checks every mock created since the last such check.
+   */
+  public static void validateStubbing(Object... mocks) {
+    List<Object> subjects;
+    if (mocks.length == 0) {
+      // Drained before the check, so that a failure here does not carry into the next test.
+      subjects = new ArrayList<>(UNCHECKED_MOCKS);
+      UNCHECKED_MOCKS.clear();
+    } else {
+      subjects = Arrays.asList(mocks);
+    }
+
+    StringBuilder report = new StringBuilder();
+    for (Object mock : subjects) {
+      MockState state = STATES.get(mock);
+      if (state == null) {
+        throw new IllegalArgumentException("Object is not a Mockatcha mock");
+      }
+      for (Stub unused : state.unusedStubs()) {
+        report.append("\n  ").append(unused.pattern());
+        List<Invocation> nearby = state.invocationsOf(unused.pattern().methodName());
+        if (nearby.isEmpty()) {
+          report.append("\n    that method was never called");
+        } else {
+          report.append("\n    that method was called with:");
+          for (Invocation invocation : nearby) {
+            report.append("\n      ").append(invocation);
+          }
+        }
+      }
+    }
+
+    if (report.length() > 0) {
+      throw new AssertionError(
+          "These stubs were arranged but never used:" + report
+              + "\nRemove them, correct their arguments, or arrange them with lenient().");
+    }
+  }
+
   /** Removes the most recently registered matcher, so a combining matcher can wrap it. */
   public static RegisteredMatcher takeLastMatcher() {
     if (MATCHERS.isEmpty()) {
@@ -338,7 +398,8 @@ public final class MockRuntime {
     MockState state = requireState(mock);
     Objects.requireNonNull(methodName, "methodName");
     Stub stub =
-        state.addStub(
+        newStub(
+            state,
             arguments == null
                 ? InvocationPattern.ofName(methodName)
                 : InvocationPattern.ofName(methodName, exactMatchers(arguments)));

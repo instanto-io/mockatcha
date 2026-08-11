@@ -23,8 +23,9 @@ second way of writing the same things.
 | --- | --- |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
 | **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Common answers](#reuse-a-common-answer) · [Change over time](#change-the-answer-over-time) |
-| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) · [When a check fails](#when-a-check-fails) |
+| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) |
 | **Beyond interfaces** | [Mock a class](#mock-a-class) · [Spy on a real object](#spy-on-a-real-object) · [Set up without calling](#set-up-without-calling-the-method) |
+| **Keep tests honest** | [Unused stubs](#insist-that-every-stub-is-used) · [When a check fails](#when-a-check-fails) |
 | **Another spelling** | [Given, when, then](#given-when-then) |
 | **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
 
@@ -434,6 +435,49 @@ cases where the call must not run during setup.
 
 Nothing behaves differently, and the two spellings mix freely, so choose one per
 test rather than per project if that reads better.
+
+## Insist that every stub is used
+
+A stub nothing ever calls is usually a typo, or one that outlived a refactor.
+The test still passes and proves less than it looks like it does.
+
+```java
+validateStubbing(store);
+```
+
+The failure names the stub and, more usefully, the calls that were made to the
+same method:
+
+```
+These stubs were arranged but never used:
+  find[A-17]
+    that method was called with:
+      find([A-18])
+Remove them, correct their arguments, or arrange them with lenient().
+```
+
+Called with no arguments, it checks every mock created since the last such
+check, which scopes it to one test from an `@After` method.
+
+Extending `StrictTest` does that for you, along with the matcher check:
+
+```java
+@RunWith(TeaVMTestRunner.class)
+@SkipJVM
+public class PricingTest extends StrictTest {
+    ...
+}
+```
+
+A base class rather than a JUnit rule because TeaVM's test runner collects
+`@Before` and `@After` from superclasses, and does not run rules.
+
+Where a stub is deliberately broad — shared setup that only some tests use —
+`lenient()` exempts it:
+
+```java
+lenient().when(clock.now()).thenReturn(FIXED_TIME);
+```
 
 ## Reuse and reset
 

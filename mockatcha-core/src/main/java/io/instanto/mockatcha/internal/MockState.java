@@ -90,10 +90,33 @@ public final class MockState {
     for (int index = stubs.size() - 1; index >= 0; index--) {
       Stub stub = stubs.get(index);
       if (stub.pattern().matches(method, arguments)) {
+        stub.markUsed();
         return stub;
       }
     }
     return null;
+  }
+
+  /** The stubs no call ever matched, leaving out those a test marked lenient. */
+  List<Stub> unusedStubs() {
+    List<Stub> unused = new ArrayList<>();
+    for (Stub stub : stubs) {
+      if (!stub.isUsed() && !stub.isLenient()) {
+        unused.add(stub);
+      }
+    }
+    return unused;
+  }
+
+  /** The calls recorded for a method name, for explaining why a stub went unused. */
+  List<Invocation> invocationsOf(String methodName) {
+    List<Invocation> matching = new ArrayList<>();
+    for (Invocation invocation : invocations) {
+      if (invocation.methodName().equals(methodName)) {
+        matching.add(invocation);
+      }
+    }
+    return matching;
   }
 
   /** Drops every stub arranged for this method name. */
