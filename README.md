@@ -49,20 +49,29 @@ the collaborators have to be replaced somewhere that TeaVM compiles.
 over IndexedDB. The class under test may be perfectly portable while the thing
 it talks to is not.
 
-**The behaviour only exists after compilation.** Java that has been translated
-to JavaScript differs in places: `long` arithmetic is emulated, `HashMap`
-iteration order changes, date and number formatting follow the browser. A test
-on the JVM cannot see any of it.
+**The behaviour only exists after compilation.** Java translated to JavaScript
+differs in places: `long` arithmetic is emulated, `HashMap` iteration order
+changes, date and number formatting follow the browser. A test on the JVM cannot
+see any of it.
 
-Oolong's fake clock is a worked example of the third. It intercepts `Date.now()`
-correctly, and for a while `System.currentTimeMillis()` still read the wall clock
-anyway, because TeaVM compiles that call to `new Date().getTime()`. On the JVM
-the two are the same method, so only a browser test could find it.
+The first case is the common one, and a component drawing to a canvas shows it
+plainly. The component is real, the canvas is real, the pixels are read back
+from it, and the only thing replaced is where the numbers came from:
 
-A reasonable split is most of the suite on the JVM and a thinner layer in the
-browser, covering the boundary code and the public API. If you are writing a
-library that others run in the browser, weight it a little further towards the
-browser: your users' failures happen in a place you cannot reproduce on the JVM.
+```java
+ReadingSource readings = mock(ReadingSource.class);
+when(readings.recent(anyInt())).thenReturn(List.of(0, 100, 0));
+
+new Sparkline(readings).draw(canvas, 100, 100);
+
+assertTrue(inkCount(canvas) > 0);
+verify(readings).recent(anyInt());
+```
+
+There is no JVM version of that test to write:
+[`SparklineTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/SparklineTest.java)
+creates the canvas through `HTMLDocument`, draws through
+`CanvasRenderingContext2D`, and counts painted pixels with `getImageData`.
 
 ## Setup
 

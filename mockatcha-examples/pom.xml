@@ -27,6 +27,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- The sparkline example draws to a canvas, so the browser APIs are compiled in. -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-jso-apis</artifactId>
+      <version>${teavm.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>

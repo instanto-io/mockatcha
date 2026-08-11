@@ -27,6 +27,11 @@ from scratch. Its tests show:
    and
 4. mocking that same concrete class when no real behaviour is wanted.
 
+[`SparklineTest`](src/test/java/io/instanto/mockatcha/examples/SparklineTest.java)
+is the case for testing in a browser at all. `Sparkline` draws to a canvas, so
+there is no JVM test to write; the readings it draws are mocked, the canvas is
+real, and the assertions read pixels back from it.
+
 Run the examples from the repository root with:
 
 ```bash
