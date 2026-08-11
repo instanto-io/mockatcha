@@ -4,7 +4,7 @@ import io.instanto.mockatcha.spi.MockAccess;
 import java.util.Objects;
 
 /**
- * A Jasmine-shaped vocabulary for tests built on Mockatcha.
+ * A second way of writing Mockatcha tests, taken from Jasmine.
  *
  * <p>Works on the same objects as {@code Mockatcha}, in the same test.
  */

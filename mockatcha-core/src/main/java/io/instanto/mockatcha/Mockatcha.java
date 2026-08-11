@@ -24,7 +24,7 @@ import org.teavm.metaprogramming.Meta;
 import org.teavm.metaprogramming.MethodCaller;
 import org.teavm.metaprogramming.Value;
 
-/** Entry point for TeaVM-native, Mockito-shaped mocking. */
+/** Entry point for mocking in TeaVM tests, following Mockito's API. */
 @CompileTime
 public final class Mockatcha {
 

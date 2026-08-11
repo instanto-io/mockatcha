@@ -12,7 +12,7 @@
 
   <artifactId>mockatcha-core</artifactId>
   <name>Mockatcha Core</name>
-  <description>Mockito-shaped interface mocking generated ahead of time for TeaVM tests.</description>
+  <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
 
   <dependencies>
     <dependency>

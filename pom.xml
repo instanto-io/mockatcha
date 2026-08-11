@@ -10,7 +10,7 @@
   <packaging>pom</packaging>
 
   <name>Mockatcha</name>
-  <description>Mockito-shaped mocking generated ahead of time for TeaVM tests.</description>
+  <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
   <url>https://github.com/cstainton/mockatcha</url>
 
   <properties>

@@ -4,7 +4,7 @@ import io.instanto.mockatcha.internal.MockRuntime;
 import java.util.Objects;
 
 /**
- * Mockito-shaped argument matchers for stubbing and verification.
+ * Argument matchers for stubbing and verification, following Mockito.
  *
  * <p>If one argument of a call uses a matcher, every argument of that call must use one. The rule
  * keeps the intended call unambiguous.
