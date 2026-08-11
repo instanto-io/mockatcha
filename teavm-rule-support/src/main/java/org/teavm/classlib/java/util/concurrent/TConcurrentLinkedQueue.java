@@ -15,29 +15,30 @@
  */
 package org.teavm.classlib.java.util.concurrent;
 
-import java.io.Serializable;
-import java.util.AbstractQueue;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
+import org.teavm.classlib.java.io.TSerializable;
+import org.teavm.classlib.java.lang.TNullPointerException;
+import org.teavm.classlib.java.util.TAbstractQueue;
+import org.teavm.classlib.java.util.TArrayDeque;
+import org.teavm.classlib.java.util.TCollection;
+import org.teavm.classlib.java.util.TIterator;
+import org.teavm.classlib.java.util.TQueue;
 
-public class TConcurrentLinkedQueue<E> extends AbstractQueue<E> implements Queue<E>, Serializable {
-    private final ArrayDeque<E> elements = new ArrayDeque<>();
+public class TConcurrentLinkedQueue<E> extends TAbstractQueue<E> implements TQueue<E>, TSerializable {
+    private final TArrayDeque<E> elements = new TArrayDeque<>();
 
     public TConcurrentLinkedQueue() {
     }
 
-    public TConcurrentLinkedQueue(Collection<? extends E> c) {
-        for (E element : c) {
-            offer(element);
+    public TConcurrentLinkedQueue(TCollection<? extends E> c) {
+        for (TIterator<? extends E> iterator = c.iterator(); iterator.hasNext();) {
+            offer(iterator.next());
         }
     }
 
     @Override
     public boolean offer(E e) {
         if (e == null) {
-            throw new NullPointerException();
+            throw new TNullPointerException();
         }
         return elements.offer(e);
     }
@@ -53,7 +54,7 @@ public class TConcurrentLinkedQueue<E> extends AbstractQueue<E> implements Queue
     }
 
     @Override
-    public Iterator<E> iterator() {
+    public TIterator<E> iterator() {
         return elements.iterator();
     }
 
