@@ -156,7 +156,7 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
         ValueEmitter statement = pe.var(1, ValueType.object(STATEMENT));
         ValueEmitter name = pe.var(2, ValueType.object("java.lang.String"));
 
-        List<FieldReader> rules = collectRuleFields(pe.getClassSource());
+        List<RuleEntry> rules = collectRules(pe.getClassSource());
         if (rules.isEmpty()) {
             statement.returnValue();
             return;
@@ -166,10 +166,11 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
         ValueEmitter description = pe.invoke(TestEntryPoint.class.getName(), "describe",
                 ValueType.object(DESCRIPTION), pe.constant(testClassName), name);
 
-        for (FieldReader rule : rules) {
-            ValueEmitter ruleValue = testCaseVar
-                    .cast(ValueType.object(rule.getOwnerName()))
-                    .getField(rule.getName(), rule.getType());
+        for (RuleEntry rule : rules) {
+            ValueEmitter owner = testCaseVar.cast(ValueType.object(rule.ownerName));
+            ValueEmitter ruleValue = rule.field != null
+                    ? owner.getField(rule.field.getName(), rule.field.getType())
+                    : owner.invokeVirtual(rule.method.getReference());
             statement = ruleValue
                     .cast(ValueType.object(TEST_RULE))
                     .invokeVirtual("apply", ValueType.object(STATEMENT), statement, description);
@@ -179,37 +180,88 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
     }
 
     /**
-     * Collects the fields a test class annotates with {@code @Rule}, superclass first.
+     * Collects the fields and methods a test class annotates with {@code @Rule}.
      *
-     * <p>Only fields whose type implements {@code TestRule} are usable: a {@code MethodRule} is
-     * handed a {@code FrameworkMethod} wrapping {@code java.lang.reflect.Method}, which is not
-     * available here.
+     * <p>Sorted the way JUnit's {@code RuleContainer} sorts them: a higher {@code order} is
+     * applied first and so ends up inner, and where the order is equal, methods are applied
+     * before fields. JUnit leaves the order within either group to the reflection API; here it
+     * is declaration order, superclass first.
+     *
+     * <p>Only rules implementing {@code TestRule} are usable: a {@code MethodRule} is handed a
+     * {@code FrameworkMethod} wrapping {@code java.lang.reflect.Method}, which is not available
+     * here.
      */
-    private List<FieldReader> collectRuleFields(ClassReaderSource classSource) {
+    private List<RuleEntry> collectRules(ClassReaderSource classSource) {
         List<ClassReader> classes = collectSuperClasses(classSource, testClassName);
         Collections.reverse(classes);
 
-        List<FieldReader> rules = new ArrayList<>();
+        List<RuleEntry> rules = new ArrayList<>();
         for (ClassReader cls : classes) {
+            for (MethodReader method : cls.getMethods()) {
+                AnnotationReader annotation = method.getAnnotations().get(JUNIT4_RULE);
+                if (annotation == null || method.hasModifier(ElementModifier.STATIC)
+                        || method.parameterCount() > 0) {
+                    continue;
+                }
+                if (isTestRule(classSource, method.getResultType(), cls.getName(),
+                        method.getName())) {
+                    rules.add(new RuleEntry(cls.getName(), null, method, orderOf(annotation), 0));
+                }
+            }
             for (FieldReader field : cls.getFields()) {
-                if (field.getAnnotations().get(JUNIT4_RULE) == null
-                        || field.hasModifier(ElementModifier.STATIC)) {
+                AnnotationReader annotation = field.getAnnotations().get(JUNIT4_RULE);
+                if (annotation == null || field.hasModifier(ElementModifier.STATIC)) {
                     continue;
                 }
-                if (!(field.getType() instanceof ValueType.Object)) {
-                    continue;
-                }
-                String typeName = ((ValueType.Object) field.getType()).getClassName();
-                if (classSource.isSuperType(TEST_RULE, typeName).orElse(false)) {
-                    rules.add(field);
-                } else if (classSource.isSuperType(METHOD_RULE, typeName).orElse(false)) {
-                    throw new IllegalStateException("Field " + cls.getName() + "." + field.getName()
-                            + " of type " + typeName + " is a MethodRule, which TeaVM cannot run"
-                            + " because it needs java.lang.reflect.Method. Use a TestRule.");
+                if (isTestRule(classSource, field.getType(), cls.getName(), field.getName())) {
+                    rules.add(new RuleEntry(cls.getName(), field, null, orderOf(annotation), 1));
                 }
             }
         }
+
+        rules.sort((first, second) -> first.order != second.order
+                ? Integer.compare(second.order, first.order)
+                : Integer.compare(first.kind, second.kind));
         return rules;
+    }
+
+    private boolean isTestRule(ClassReaderSource classSource, ValueType type, String owner,
+            String member) {
+        if (!(type instanceof ValueType.Object)) {
+            return false;
+        }
+        String typeName = ((ValueType.Object) type).getClassName();
+        if (classSource.isSuperType(TEST_RULE, typeName).orElse(false)) {
+            return true;
+        }
+        if (classSource.isSuperType(METHOD_RULE, typeName).orElse(false)) {
+            throw new IllegalStateException(owner + "." + member + " of type " + typeName
+                    + " is a MethodRule, which TeaVM cannot run because it needs"
+                    + " java.lang.reflect.Method. Use a TestRule.");
+        }
+        return false;
+    }
+
+    private static int orderOf(AnnotationReader annotation) {
+        AnnotationValue order = annotation.getValue("order");
+        return order != null ? order.getInt() : -1;
+    }
+
+    private static final class RuleEntry {
+        private final String ownerName;
+        private final FieldReader field;
+        private final MethodReader method;
+        private final int order;
+        private final int kind;
+
+        private RuleEntry(String ownerName, FieldReader field, MethodReader method, int order,
+                int kind) {
+            this.ownerName = ownerName;
+            this.field = field;
+            this.method = method;
+            this.order = order;
+            this.kind = kind;
+        }
     }
 
     private List<ClassReader> collectSuperClasses(ClassReaderSource classSource, String className) {

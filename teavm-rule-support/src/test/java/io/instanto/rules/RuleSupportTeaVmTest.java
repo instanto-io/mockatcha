@@ -35,11 +35,17 @@ public class RuleSupportTeaVmTest {
   @Rule
   public TestRule second = new RecordingRule("second");
 
+  @Rule
+  public TestRule fromMethod() {
+    return new RecordingRule("fromMethod");
+  }
+
   @Test
   public void bothRulesWrappedThisTest() {
     EVENTS.add("test");
 
-    assertEquals(List.of("second before", "first before", "test"), EVENTS);
+    assertEquals(
+        List.of("second before", "first before", "fromMethod before", "test"), EVENTS);
   }
 
   @Test
@@ -54,11 +60,21 @@ public class RuleSupportTeaVmTest {
   }
 
   @Test
+  public void aRuleDeclaredAsAMethodIsAppliedInsideTheFields() {
+    EVENTS.add("test");
+
+    // JUnit applies methods before fields, so the method rule sits inside both fields.
+    assertEquals(
+        List.of("second before", "first before", "fromMethod before", "test"), EVENTS);
+  }
+
+  @Test
   public void theRulesUnwindInReverse() {
     EVENTS.add("test");
 
     // The after entries are appended as the rules unwind, so a later test sees the full cycle.
-    assertEquals(List.of("second before", "first before", "test"), EVENTS);
+    assertEquals(
+        List.of("second before", "first before", "fromMethod before", "test"), EVENTS);
   }
 
   static final class RecordingRule implements TestRule {

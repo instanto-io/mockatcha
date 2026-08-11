@@ -71,12 +71,91 @@ index 0000000..4de502d
 +        return items.isEmpty();
 +    }
 +}
+diff --git a/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java b/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java
+new file mode 100644
+index 0000000..f8d6a5a
+--- /dev/null
++++ b/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java
+@@ -0,0 +1,73 @@
++/*
++ *  Copyright 2026 Alexey Andreev.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.tests;
++
++import static org.junit.Assert.assertEquals;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TestRule;
++import org.junit.runner.Description;
++import org.junit.runner.RunWith;
++import org.junit.runners.model.Statement;
++import org.teavm.junit.TeaVMTestRunner;
++
++/**
++ * The {@code order} attribute, which JUnit documents as "rules with a higher value are inner".
++ *
++ * <p>Declaration order here is the reverse of application order, so only {@code order} can be
++ * deciding the outcome.
++ */
++@RunWith(TeaVMTestRunner.class)
++public class JUnitRuleOrderTest {
++
++    static final List<String> events = new ArrayList<>();
++
++    @Rule(order = 10)
++    public TestRule declaredFirstWithHighOrder = new RecordingRule("high");
++
++    @Rule(order = 1)
++    public TestRule declaredSecondWithLowOrder = new RecordingRule("low");
++
++    @Test
++    public void theHigherOrderRuleIsTheInnerOne() {
++        events.add("test");
++
++        assertEquals(Arrays.asList("low before", "high before", "test"), events);
++    }
++
++    static final class RecordingRule implements TestRule {
++
++        private final String name;
++
++        RecordingRule(String name) {
++            this.name = name;
++        }
++
++        @Override
++        public Statement apply(Statement base, Description description) {
++            return new Statement() {
++                @Override
++                public void evaluate() throws Throwable {
++                    events.add(name + " before");
++                    base.evaluate();
++                }
++            };
++        }
++    }
++}
 diff --git a/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java b/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java
 new file mode 100644
-index 0000000..e658a31
+index 0000000..32a6ef4
 --- /dev/null
 +++ b/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,121 @@
 +/*
 + *  Copyright 2026 Alexey Andreev.
 + *
@@ -107,11 +186,19 @@ index 0000000..e658a31
 +import org.junit.runners.model.Statement;
 +import org.teavm.junit.TeaVMTestRunner;
 +
++/**
++ * JUnit rules wrapping a test that TeaVM compiled and a browser ran.
++ *
++ * <p>The rules are applied in declaration order, each wrapping the one before, so the last field
++ * declared is the outermost. That is what JUnit's own {@code RunRules} does with the list it is
++ * given.
++ */
 +@RunWith(TeaVMTestRunner.class)
 +public class JUnitRuleTest {
-+    private static final List<String> events = new ArrayList<>();
-+    private static String describedAs;
-+    private static int depth;
++
++    static final List<String> events = new ArrayList<>();
++    static String describedAs;
++    static int depth;
 +
 +    @Rule
 +    public TestRule first = new RecordingRule("first");
@@ -119,24 +206,50 @@ index 0000000..e658a31
 +    @Rule
 +    public TestRule second = new RecordingRule("second");
 +
++    @Rule
++    public TestRule fromMethod() {
++        return new RecordingRule("fromMethod");
++    }
++
 +    @Test
-+    public void rulesWrapTest() {
++    public void bothRulesWrappedThisTest() {
 +        events.add("test");
-+        assertEquals(Arrays.asList("second before", "first before", "test"), events);
++
++        assertEquals(
++                Arrays.asList("second before", "first before", "fromMethod before", "test"), events);
 +    }
 +
 +    @Test
-+    public void ruleReceivesDescription() {
++    public void theRuleSawTheTestDescription() {
 +        assertTrue(describedAs, describedAs.contains("JUnitRuleTest"));
-+        assertTrue(describedAs, describedAs.contains("ruleReceivesDescription"));
++        assertTrue(describedAs, describedAs.contains("theRuleSawTheTestDescription"));
 +    }
 +
 +    @Test
-+    public void testBodyStillRuns() {
++    public void theTestBodyStillRuns() {
 +        assertEquals(4, 2 + 2);
 +    }
 +
-+    static class RecordingRule implements TestRule {
++    @Test
++    public void aRuleDeclaredAsAMethodIsAppliedInsideTheFields() {
++        events.add("test");
++
++        // JUnit applies methods before fields, so the method rule sits inside both fields.
++        assertEquals(
++                Arrays.asList("second before", "first before", "fromMethod before", "test"), events);
++    }
++
++    @Test
++    public void theRulesUnwindInReverse() {
++        events.add("test");
++
++        // The after entries are appended as the rules unwind, so a later test sees the full cycle.
++        assertEquals(
++                Arrays.asList("second before", "first before", "fromMethod before", "test"), events);
++    }
++
++    static final class RecordingRule implements TestRule {
++
 +        private final String name;
 +
 +        RecordingRule(String name) {
@@ -242,7 +355,7 @@ index 6243594..fb83f3a 100644
 +    }
  }
 diff --git a/tools/junit/src/main/java/org/teavm/junit/TestEntryPointTransformer.java b/tools/junit/src/main/java/org/teavm/junit/TestEntryPointTransformer.java
-index dfe1a7b..757df17 100644
+index dfe1a7b..0dacc53 100644
 --- a/tools/junit/src/main/java/org/teavm/junit/TestEntryPointTransformer.java
 +++ b/tools/junit/src/main/java/org/teavm/junit/TestEntryPointTransformer.java
 @@ -38,6 +38,7 @@ import org.teavm.model.ClassReader;
@@ -277,7 +390,7 @@ index dfe1a7b..757df17 100644
                  }
              }
          }
-@@ -133,6 +144,74 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
+@@ -133,6 +144,126 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
          return pe.getProgram();
      }
  
@@ -293,7 +406,7 @@ index dfe1a7b..757df17 100644
 +        ValueEmitter statement = pe.var(1, ValueType.object(STATEMENT));
 +        ValueEmitter name = pe.var(2, ValueType.object("java.lang.String"));
 +
-+        List<FieldReader> rules = collectRuleFields(pe.getClassSource());
++        List<RuleEntry> rules = collectRules(pe.getClassSource());
 +        if (rules.isEmpty()) {
 +            statement.returnValue();
 +            return;
@@ -303,10 +416,11 @@ index dfe1a7b..757df17 100644
 +        ValueEmitter description = pe.invoke(TestEntryPoint.class.getName(), "describe",
 +                ValueType.object(DESCRIPTION), pe.constant(testClassName), name);
 +
-+        for (FieldReader rule : rules) {
-+            ValueEmitter ruleValue = testCaseVar
-+                    .cast(ValueType.object(rule.getOwnerName()))
-+                    .getField(rule.getName(), rule.getType());
++        for (RuleEntry rule : rules) {
++            ValueEmitter owner = testCaseVar.cast(ValueType.object(rule.ownerName));
++            ValueEmitter ruleValue = rule.field != null
++                    ? owner.getField(rule.field.getName(), rule.field.getType())
++                    : owner.invokeVirtual(rule.method.getReference());
 +            statement = ruleValue
 +                    .cast(ValueType.object(TEST_RULE))
 +                    .invokeVirtual("apply", ValueType.object(STATEMENT), statement, description);
@@ -316,37 +430,88 @@ index dfe1a7b..757df17 100644
 +    }
 +
 +    /**
-+     * Collects the fields a test class annotates with {@code @Rule}, superclass first.
++     * Collects the fields and methods a test class annotates with {@code @Rule}.
 +     *
-+     * <p>Only fields whose type implements {@code TestRule} are usable: a {@code MethodRule} is
-+     * handed a {@code FrameworkMethod} wrapping {@code java.lang.reflect.Method}, which is not
-+     * available here.
++     * <p>Sorted the way JUnit's {@code RuleContainer} sorts them: a higher {@code order} is
++     * applied first and so ends up inner, and where the order is equal, methods are applied
++     * before fields. JUnit leaves the order within either group to the reflection API; here it
++     * is declaration order, superclass first.
++     *
++     * <p>Only rules implementing {@code TestRule} are usable: a {@code MethodRule} is handed a
++     * {@code FrameworkMethod} wrapping {@code java.lang.reflect.Method}, which is not available
++     * here.
 +     */
-+    private List<FieldReader> collectRuleFields(ClassReaderSource classSource) {
++    private List<RuleEntry> collectRules(ClassReaderSource classSource) {
 +        List<ClassReader> classes = collectSuperClasses(classSource, testClassName);
 +        Collections.reverse(classes);
 +
-+        List<FieldReader> rules = new ArrayList<>();
++        List<RuleEntry> rules = new ArrayList<>();
 +        for (ClassReader cls : classes) {
++            for (MethodReader method : cls.getMethods()) {
++                AnnotationReader annotation = method.getAnnotations().get(JUNIT4_RULE);
++                if (annotation == null || method.hasModifier(ElementModifier.STATIC)
++                        || method.parameterCount() > 0) {
++                    continue;
++                }
++                if (isTestRule(classSource, method.getResultType(), cls.getName(),
++                        method.getName())) {
++                    rules.add(new RuleEntry(cls.getName(), null, method, orderOf(annotation), 0));
++                }
++            }
 +            for (FieldReader field : cls.getFields()) {
-+                if (field.getAnnotations().get(JUNIT4_RULE) == null
-+                        || field.hasModifier(ElementModifier.STATIC)) {
++                AnnotationReader annotation = field.getAnnotations().get(JUNIT4_RULE);
++                if (annotation == null || field.hasModifier(ElementModifier.STATIC)) {
 +                    continue;
 +                }
-+                if (!(field.getType() instanceof ValueType.Object)) {
-+                    continue;
-+                }
-+                String typeName = ((ValueType.Object) field.getType()).getClassName();
-+                if (classSource.isSuperType(TEST_RULE, typeName).orElse(false)) {
-+                    rules.add(field);
-+                } else if (classSource.isSuperType(METHOD_RULE, typeName).orElse(false)) {
-+                    throw new IllegalStateException("Field " + cls.getName() + "." + field.getName()
-+                            + " of type " + typeName + " is a MethodRule, which TeaVM cannot run"
-+                            + " because it needs java.lang.reflect.Method. Use a TestRule.");
++                if (isTestRule(classSource, field.getType(), cls.getName(), field.getName())) {
++                    rules.add(new RuleEntry(cls.getName(), field, null, orderOf(annotation), 1));
 +                }
 +            }
 +        }
++
++        rules.sort((first, second) -> first.order != second.order
++                ? Integer.compare(second.order, first.order)
++                : Integer.compare(first.kind, second.kind));
 +        return rules;
++    }
++
++    private boolean isTestRule(ClassReaderSource classSource, ValueType type, String owner,
++            String member) {
++        if (!(type instanceof ValueType.Object)) {
++            return false;
++        }
++        String typeName = ((ValueType.Object) type).getClassName();
++        if (classSource.isSuperType(TEST_RULE, typeName).orElse(false)) {
++            return true;
++        }
++        if (classSource.isSuperType(METHOD_RULE, typeName).orElse(false)) {
++            throw new IllegalStateException(owner + "." + member + " of type " + typeName
++                    + " is a MethodRule, which TeaVM cannot run because it needs"
++                    + " java.lang.reflect.Method. Use a TestRule.");
++        }
++        return false;
++    }
++
++    private static int orderOf(AnnotationReader annotation) {
++        AnnotationValue order = annotation.getValue("order");
++        return order != null ? order.getInt() : -1;
++    }
++
++    private static final class RuleEntry {
++        private final String ownerName;
++        private final FieldReader field;
++        private final MethodReader method;
++        private final int order;
++        private final int kind;
++
++        private RuleEntry(String ownerName, FieldReader field, MethodReader method, int order,
++                int kind) {
++            this.ownerName = ownerName;
++            this.field = field;
++            this.method = method;
++            this.order = order;
++            this.kind = kind;
++        }
 +    }
 +
      private List<ClassReader> collectSuperClasses(ClassReaderSource classSource, String className) {
