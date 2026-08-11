@@ -22,9 +22,10 @@ second way of writing the same things.
 | | |
 | --- | --- |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
-| **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Change over time](#change-the-answer-over-time) |
+| **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Common answers](#reuse-a-common-answer) · [Change over time](#change-the-answer-over-time) |
 | **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) · [When a check fails](#when-a-check-fails) |
 | **Beyond interfaces** | [Mock a class](#mock-a-class) · [Spy on a real object](#spy-on-a-real-object) · [Set up without calling](#set-up-without-calling-the-method) |
+| **Another spelling** | [Given, when, then](#given-when-then) |
 | **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
 
 ## Setup
@@ -174,6 +175,26 @@ When you want to see how your class copes with a broken collaborator, use
 ```java
 when(profiles.find("A-17"))
         .thenThrow(new IllegalStateException("Profile store unavailable"));
+```
+
+## Reuse a common answer
+
+Some answers come up often enough to have names:
+
+```java
+when(store.save(any())).thenAnswer(returnsFirstArg());
+when(clock.next()).thenAnswer(returnsElementsOf(List.of(1, 2, 3)));
+```
+
+`returnsFirstArg`, `returnsSecondArg`, `returnsLastArg`, and `returnsArgAt(n)`
+hand an argument back to the caller, which suits a collaborator that saves
+something and returns it. `returnsElementsOf` walks a sequence you already have,
+repeating the last element once it runs out.
+
+`answer(...)` types the arguments for you, so the test does not cast:
+
+```java
+when(names.of(anyString())).thenAnswer(answer((String id) -> id.toUpperCase()));
 ```
 
 ## Change the answer over time
@@ -385,6 +406,34 @@ doNothing().when(pricingSpy).record("audited");
 
 The real method never runs. These work on plain mocks too, where they are just
 another way of writing `when`.
+
+## Given, when, then
+
+`BDDMockatcha` is the same library spelled to match the three parts of a test:
+
+```java
+// given
+given(repository.findDraft("A-17")).willReturn(new Timesheet("A-17", 38));
+
+// when
+Submission result = service.submit("A-17");
+
+// then
+then(repository).should().markSubmitted("A-17");
+then(notifications).shouldHaveNoInteractions();
+```
+
+`given(...).willReturn/willThrow/willAnswer` replaces `when(...).thenReturn` and
+its siblings. `then(mock).should()` replaces `verify(mock)`, and takes the same
+counting rules — `should(times(2))` — and an order, as `should(order)`.
+`shouldHaveNoInteractions` and `shouldHaveNoMoreInteractions` replace the
+`verifyNo...` calls.
+
+`willReturn(v).given(mock).method()` is the spelling of `doReturn`, for the
+cases where the call must not run during setup.
+
+Nothing behaves differently, and the two spellings mix freely, so choose one per
+test rather than per project if that reads better.
 
 ## Reuse and reset
 

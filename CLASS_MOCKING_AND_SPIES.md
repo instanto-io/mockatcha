@@ -24,6 +24,8 @@ delivery sequence it described has been completed.
 | `AdditionalMatchers`: `and`, `or`, `not`, `gt`, `geq`, `lt`, `leq`, `cmpEq`, `aryEq`, `find` | Done |
 | Failure messages listing the calls that happened | Done |
 | Detection of matchers left over from a call on something that is not a mock | Done |
+| `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf`, typed `answer` | Done |
+| `BDDMockatcha`: `given` / `willReturn` / `then` / `should` | Done |
 | Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
 | Jasmine-shaped layer: name-based configuration, call inspection, fake clock, matchers including `objectContaining` | Done, in the `oolong` module |
 | Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
@@ -274,8 +276,6 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | Notes |
 | --- | --- |
-| `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf` | A handful of `Answer` implementations. `delegatesTo` is already covered by `spy(Class, T)` on an interface. |
-| `BDDMockito`: `given` / `willReturn` / `then` / `should` | An alias layer over what exists. Worth it only if the team writes in that style. |
 | Mock naming, as in `withSettings().name(...)` | `MockState` already carries a description for `toString`; this only needs a way to set it. |
 
 ### Worth doing, with a design decision attached
@@ -303,8 +303,8 @@ None of these need the generator to change. They are new behaviour in
 
 ### A reasonable next tranche
 
-`AdditionalAnswers` and `BDDMockito` are what remains of the easy gap. Strict
-stubbing is the next item that needs a decision rather than only code.
+Strict stubbing is the next item, and it needs a decision rather than only code.
+Everything cheaper than it is done.
 
 Four things learned while building the verification work are worth keeping in
 mind for the rest:
