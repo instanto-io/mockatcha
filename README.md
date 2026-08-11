@@ -597,6 +597,7 @@ the test compiles, naming the type and the rule that applied.
 | --- | --- |
 | `mockatcha-core` | The library described above. Its one dependency is TeaVM's metaprogramming API. |
 | `oolong` | A [second vocabulary](oolong/README.md): configure by method name, read the call record, control the clock. |
+| `oolong-dom` | [Tests for code that renders](oolong-dom/README.md): a container per test, queries, events, and assertions. |
 | `mockatcha-examples` | Worked examples you can run. |
 | `teavm-rule-support` | A [fix for TeaVM's test runner](teavm-rule-support/README.md) so `@Rule` works, with the patch for upstream. Separate from Mockatcha. |
 

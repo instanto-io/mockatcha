@@ -23,6 +23,7 @@
   <modules>
     <module>mockatcha-core</module>
     <module>oolong</module>
+    <module>oolong-dom</module>
     <module>mockatcha-examples</module>
     <module>teavm-rule-support</module>
   </modules>

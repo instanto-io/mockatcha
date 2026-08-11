@@ -28,6 +28,9 @@ The same guidance applies as for
 test, and these are for the code that has to run in a browser. The fake clock is
 squarely in that second group.
 
+For tests that render, [`oolong-dom`](../oolong-dom/README.md) adds a container
+per test, queries, events, and assertions about elements.
+
 ## Setup
 
 Oolong brings Mockatcha with it:

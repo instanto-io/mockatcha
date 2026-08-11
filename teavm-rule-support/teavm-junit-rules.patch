@@ -1,9 +1,9 @@
 diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
 new file mode 100644
-index 0000000..4de502d
+index 0000000..89e7eb3
 --- /dev/null
 +++ b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,69 @@
 +/*
 + *  Copyright 2026 Alexey Andreev.
 + *
@@ -29,13 +29,15 @@ index 0000000..4de502d
 +import java.util.Queue;
 +
 +public class TConcurrentLinkedQueue<E> extends AbstractQueue<E> implements Queue<E>, Serializable {
-+    private final ArrayDeque<E> items = new ArrayDeque<>();
++    private final ArrayDeque<E> elements = new ArrayDeque<>();
 +
 +    public TConcurrentLinkedQueue() {
 +    }
 +
 +    public TConcurrentLinkedQueue(Collection<? extends E> c) {
-+        items.addAll(c);
++        for (E element : c) {
++            offer(element);
++        }
 +    }
 +
 +    @Override
@@ -43,32 +45,32 @@ index 0000000..4de502d
 +        if (e == null) {
 +            throw new NullPointerException();
 +        }
-+        return items.offer(e);
++        return elements.offer(e);
 +    }
 +
 +    @Override
 +    public E poll() {
-+        return items.poll();
++        return elements.poll();
 +    }
 +
 +    @Override
 +    public E peek() {
-+        return items.peek();
++        return elements.peek();
 +    }
 +
 +    @Override
 +    public Iterator<E> iterator() {
-+        return items.iterator();
++        return elements.iterator();
 +    }
 +
 +    @Override
 +    public int size() {
-+        return items.size();
++        return elements.size();
 +    }
 +
 +    @Override
 +    public boolean isEmpty() {
-+        return items.isEmpty();
++        return elements.isEmpty();
 +    }
 +}
 diff --git a/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java b/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java
