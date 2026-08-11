@@ -21,6 +21,7 @@ second way of writing the same things.
 
 | | |
 | --- | --- |
+| **Decide** | [When to use it](#when-to-use-it) |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
 | **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Common answers](#reuse-a-common-answer) · [Change over time](#change-the-answer-over-time) |
 | **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) |
@@ -28,6 +29,40 @@ second way of writing the same things.
 | **Keep tests honest** | [Unused stubs](#insist-that-every-stub-is-used) · [When a check fails](#when-a-check-fails) |
 | **Another spelling** | [Given, when, then](#given-when-then) |
 | **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
+
+## When to use it
+
+Mockatcha is for the code that cannot be tested on the JVM.
+
+Portable Java — domain logic, algorithms, state machines — is better served by a
+JVM test with Mockito. It exercises the same code, has the whole of Mockito
+available, and finishes in milliseconds where a browser test takes seconds.
+Those tests should stay where they are.
+
+Three things bring a test into the browser instead.
+
+**The code uses the browser.** Timers, the DOM, canvas, storage, anything
+reached through TeaVM's JavaScript interop. There is no JVM test to write, so
+the collaborators have to be replaced somewhere that TeaVM compiles.
+
+**The collaborator is browser-specific.** A transport over WebSocket, a store
+over IndexedDB. The class under test may be perfectly portable while the thing
+it talks to is not.
+
+**The behaviour only exists after compilation.** Java that has been translated
+to JavaScript differs in places: `long` arithmetic is emulated, `HashMap`
+iteration order changes, date and number formatting follow the browser. A test
+on the JVM cannot see any of it.
+
+Oolong's fake clock is a worked example of the third. It intercepts `Date.now()`
+correctly, and for a while `System.currentTimeMillis()` still read the wall clock
+anyway, because TeaVM compiles that call to `new Date().getTime()`. On the JVM
+the two are the same method, so only a browser test could find it.
+
+A reasonable split is most of the suite on the JVM and a thinner layer in the
+browser, covering the boundary code and the public API. If you are writing a
+library that others run in the browser, weight it a little further towards the
+browser: your users' failures happen in a place you cannot reproduce on the JVM.
 
 ## Setup
 

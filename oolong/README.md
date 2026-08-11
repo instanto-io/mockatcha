@@ -23,6 +23,11 @@ assertEquals(1, calls(pricing, "currency").count());
 | **Control time** | [The fake clock](#control-the-clock) |
 | **Reference** | [Coming from Jasmine](#coming-from-jasmine) |
 
+The same guidance applies as for
+[Mockatcha itself](../README.md#when-to-use-it): portable logic belongs in a JVM
+test, and these are for the code that has to run in a browser. The fake clock is
+squarely in that second group.
+
 ## Setup
 
 Oolong brings Mockatcha with it:
