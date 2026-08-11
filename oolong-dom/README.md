@@ -21,10 +21,36 @@ controlled clock as well.
 
 | | |
 | --- | --- |
+| **Decide** | [Why it exists](#why-it-exists) |
 | **Get started** | [Setup](#setup) · [A container per test](#a-container-per-test) |
 | **Drive it** | [Find things](#find-things) · [Events](#events) |
 | **Check it** | [Expectations](#expectations) |
 | **Together** | [All three libraries](#all-three-libraries) |
+
+## Why it exists
+
+Every test in a run shares one document. Elements left behind by one test are
+found by the next, listeners attached earlier keep firing, and a failure surfaces
+in a test that did nothing wrong. Giving each test a container of its own,
+created before it and removed after, and scoping queries and events to that
+container, keeps one test out of the next.
+
+The second half is what a failure tells you. This:
+
+```java
+assertEquals("Hello Ada", find("h1").getTextContent());
+```
+
+reports two strings and leaves you to work out which element it read, whether
+the selector matched what you thought, and whether anything matched at all.
+`expect(find("h1"))` still holds the selector and the element, so it can print
+them:
+
+```
+Wanted text "Hello Ada" but found "Goodbye".
+The element is:
+<h1 class="title">Goodbye</h1>
+```
 
 ## Setup
 

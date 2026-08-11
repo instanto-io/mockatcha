@@ -17,6 +17,7 @@ assertEquals(1, calls(pricing, "currency").count());
 
 | | |
 | --- | --- |
+| **Decide** | [Why it exists](#why-it-exists) |
 | **Get started** | [Setup](#setup) · [Configure by name](#configure-a-method-by-name) |
 | **Inspect** | [Read the call record](#read-the-call-record) |
 | **Describe arguments** | [Shapes](#describe-the-shape-of-an-argument) · [Object properties](#match-an-object-by-its-properties) |
@@ -30,6 +31,30 @@ squarely in that second group.
 
 For tests that render, [`oolong-dom`](../oolong-dom/README.md) adds a container
 per test, queries, events, and assertions about elements.
+
+## Why it exists
+
+Mockito identifies a method by calling it, and states expectations that fail
+where they are written. That is the right default, and Mockatcha keeps it.
+Jasmine made different choices, and three of them are worth having in a browser
+test.
+
+**Naming a method rather than calling it.** On a spy, `when(pricing.currency())`
+runs the real method to find out which one you mean. Naming it does not.
+
+**Reading the call record as data.** A count, the arguments of the third call,
+everything a mock saw. Some assertions are easier to write against a list than
+to express as a verification.
+
+**Controlling the clock.** Code that polls, debounces, retries or animates is
+written against `setTimeout` and `requestAnimationFrame`. A synchronous test
+cannot wait for real milliseconds to pass, because nothing else runs until it
+returns. Replacing the timer functions puts the test in charge of when time
+moves, and replacing `Date` alongside them keeps everything reading the current
+instant in agreement.
+
+Matching an object by two of its properties is Jasmine's as well. It works here
+because the property readers are generated while the test compiles.
 
 ## Setup
 

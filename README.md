@@ -21,7 +21,7 @@ second way of writing the same things.
 
 | | |
 | --- | --- |
-| **Decide** | [When to use it](#when-to-use-it) |
+| **Decide** | [Why it exists](#why-it-exists) · [When to use it](#when-to-use-it) |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
 | **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Common answers](#reuse-a-common-answer) · [Change over time](#change-the-answer-over-time) |
 | **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) |
@@ -29,6 +29,27 @@ second way of writing the same things.
 | **Keep tests honest** | [Unused stubs](#insist-that-every-stub-is-used) · [When a check fails](#when-a-check-fails) |
 | **Another spelling** | [Given, when, then](#given-when-then) |
 | **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
+
+## Why it exists
+
+Mockito builds a mock while the test is running. It reads the type through
+reflection and generates a class straight into the running JVM. TeaVM offers
+neither: it compiles a whole program ahead of time, keeps only the code it can
+prove is reachable, and leaves no compiler behind to add more.
+
+So a mock has to exist before the program starts. Mockatcha generates one for
+every `mock(SomeType.class)` in the test sources while TeaVM compiles them,
+through TeaVM's metaprogramming API. Three things follow.
+
+**The type is written out in full.** `mock(type)` for some variable `type` has
+nothing to generate from. The argument is always a class literal.
+
+**Mistakes are compile errors.** Mocking a final class, or one with no
+no-argument constructor, fails the build and names the line that asked for it.
+
+**A test using Mockatcha compiles only for the browser.** The generated method
+bodies live in TeaVM's output, so the same test class will not also run on the
+JVM. Portable code is better tested on the JVM with Mockito.
 
 ## When to use it
 
@@ -72,6 +93,17 @@ There is no JVM version of that test to write:
 [`SparklineTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/SparklineTest.java)
 creates the canvas through `HTMLDocument`, draws through
 `CanvasRenderingContext2D`, and counts painted pixels with `getImageData`.
+
+### Testkits
+
+A library publishing a testkit for its own users meets the same split. Doubles
+written by hand are portable and belong in the testkit itself. Doubles built by
+a mocking library are not, so they belong beside it: a `-jvm` artifact holding
+the Mockito ones and a `-teavm` artifact holding the Mockatcha ones. Consumers
+take the portable artifact plus whichever half matches where their tests run.
+
+Keeping them together instead pins the whole testkit to one platform. A single
+Mockito import is enough to stop a browser test from compiling.
 
 ## Setup
 
