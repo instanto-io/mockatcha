@@ -5,6 +5,9 @@ a rule silently does nothing in a browser test. This module is a working fix,
 running in Chrome, and [`teavm-junit-rules.patch`](teavm-junit-rules.patch) is
 the same change against `teavm` at tag 0.15.0.
 
+[`PULL_REQUEST.md`](PULL_REQUEST.md) is the accompanying description, ready to
+review before anything is sent.
+
 Nothing here is part of Mockatcha. The classes under `org/teavm/junit` and
 `org/teavm/classlib` are copies that shadow the ones in the TeaVM jars, because
 test classes come before dependencies on the classpath. That makes the patch
