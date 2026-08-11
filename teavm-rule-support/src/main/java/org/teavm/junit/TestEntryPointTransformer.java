@@ -144,12 +144,7 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
         return pe.getProgram();
     }
 
-    /**
-     * Emits the body of {@code applyRules}, wrapping the statement in each rule the test declares.
-     *
-     * <p>The rule fields are read directly, so nothing here needs reflection at runtime. Rules
-     * apply outermost last, which is the order JUnit's own runner uses.
-     */
+    /** Emits the body of {@code applyRules}, wrapping the statement in each rule in turn. */
     private void generateApplyRulesProgram(MethodHolder method, ClassHierarchy hierarchy) {
         ProgramEmitter pe = ProgramEmitter.create(method, hierarchy);
         // Variable 0 is the receiver slot, so a static method's parameters start at 1.
@@ -180,16 +175,12 @@ abstract class TestEntryPointTransformer implements ClassHolderTransformer, TeaV
     }
 
     /**
-     * Collects the fields and methods a test class annotates with {@code @Rule}.
+     * Collects the fields and methods a test class annotates with {@code @Rule}, in the order
+     * they are applied.
      *
-     * <p>Sorted the way JUnit's {@code RuleContainer} sorts them: a higher {@code order} is
-     * applied first and so ends up inner, and where the order is equal, methods are applied
-     * before fields. JUnit leaves the order within either group to the reflection API; here it
-     * is declaration order, superclass first.
-     *
-     * <p>Only rules implementing {@code TestRule} are usable: a {@code MethodRule} is handed a
-     * {@code FrameworkMethod} wrapping {@code java.lang.reflect.Method}, which is not available
-     * here.
+     * <p>A higher {@code order} is applied first and so ends up inner. Where the order is equal,
+     * methods come before fields, and within either group, declaration order with superclasses
+     * first.
      */
     private List<RuleEntry> collectRules(ClassReaderSource classSource) {
         List<ClassReader> classes = collectSuperClasses(classSource, testClassName);
