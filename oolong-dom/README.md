@@ -108,6 +108,22 @@ The element is:
 <h1 class="title">Hello Ada</h1>
 ```
 
+## Work that finishes later
+
+`clock().tick(...)` runs anything scheduled through a timer, which covers polling,
+debouncing, retries and animation.
+
+Promise callbacks are a different matter. The browser runs them once the call
+stack empties, which is after the test method returns, so a test cannot observe
+them however long it waits.
+[`PromiseTimingTeaVmTest`](src/test/java/io/instanto/oolong/dom/PromiseTimingTeaVmTest.java)
+shows that directly.
+
+Code written against a result type that completes on the spot is testable
+without waiting. [Sarto Async](https://github.com/cstainton/sarto-async)'s
+`PortableResult` calls its subscribers on the thread that completes it, so a
+test can complete the result itself and assert immediately.
+
 ## All three libraries
 
 A component that waits for typing to stop, then asks a service and lists what
