@@ -26,6 +26,7 @@ public final class MockRuntime {
   private static VerificationRequest verification;
   private static StubbingRequest stubbing;
   private static boolean nextStubIsLenient;
+  private static boolean strictStubs;
 
   private MockRuntime() {}
 
@@ -39,9 +40,59 @@ public final class MockRuntime {
     return state.description();
   }
 
-  /** Reports whether a generated method should hand this call to the real object. */
-  public static boolean callsReal(Object dispatchResult, Object delegate) {
-    return dispatchResult == REAL_CALL && delegate != null;
+  /**
+   * Reports whether a generated method should hand this call to the real object.
+   *
+   * <p>A mock has no delegate, so an unstubbed call on one is where strict stubbing looks for a
+   * stub that was meant for it.
+   */
+  public static boolean callsReal(
+      MockState state, String method, Object[] arguments, Object dispatchResult, Object delegate) {
+    if (dispatchResult != REAL_CALL) {
+      return false;
+    }
+    if (delegate != null) {
+      return true;
+    }
+    requireNoNearMissStub(state, method, arguments);
+    return false;
+  }
+
+  /** Turns on failing at the call when a stub for the same method was arranged but did not match. */
+  public static void strictStubs(boolean strict) {
+    strictStubs = strict;
+  }
+
+  /**
+   * Fails a call that found no stub while the same method has one that did not match.
+   *
+   * <p>Almost always the stub and the call disagree about the arguments, and saying so at the call
+   * points at the mistake rather than at whatever the empty value later broke.
+   */
+  private static void requireNoNearMissStub(MockState state, String method, Object[] arguments) {
+    if (!strictStubs) {
+      return;
+    }
+    int parenthesis = method.indexOf('(');
+    String methodName = parenthesis < 0 ? method : method.substring(0, parenthesis);
+    List<Stub> nearMisses = state.stubsOf(methodName);
+    if (nearMisses.isEmpty()) {
+      return;
+    }
+
+    StringBuilder message =
+        new StringBuilder(state.description())
+            .append(" was called with ")
+            .append(new Invocation(state.mock(), method, arguments))
+            .append(", which no arranged answer matched.")
+            .append("\nThis method does have arranged answers for:");
+    for (Stub stub : nearMisses) {
+      message.append("\n  ").append(stub.pattern());
+    }
+    message.append(
+        "\nEither the call or the stub has the wrong arguments."
+            + " Use lenient() where a stub is deliberately narrow.");
+    throw new AssertionError(message.toString());
   }
 
   /** Converts a dispatch result for a method that returns an object. */
@@ -73,7 +124,11 @@ public final class MockRuntime {
 
   public static Object invokeObject(MockState state, String method, Object[] arguments) {
     Object result = dispatch(state, method, arguments);
-    return result == REAL_CALL ? null : result;
+    if (result == REAL_CALL) {
+      requireNoNearMissStub(state, method, arguments);
+      return null;
+    }
+    return result;
   }
 
   /** Dispatches a call on a generated spy, returning {@link #REAL_CALL} when nothing is stubbed. */

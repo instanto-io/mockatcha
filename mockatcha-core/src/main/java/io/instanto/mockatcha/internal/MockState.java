@@ -108,6 +108,17 @@ public final class MockState {
     return unused;
   }
 
+  /** The stubs arranged for a method name, for explaining why a call found none. */
+  List<Stub> stubsOf(String methodName) {
+    List<Stub> matching = new ArrayList<>();
+    for (Stub stub : stubs) {
+      if (stub.pattern().methodName().equals(methodName) && !stub.isLenient()) {
+        matching.add(stub);
+      }
+    }
+    return matching;
+  }
+
   /** The calls recorded for a method name, for explaining why a stub went unused. */
   List<Invocation> invocationsOf(String methodName) {
     List<Invocation> matching = new ArrayList<>();

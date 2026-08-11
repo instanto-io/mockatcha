@@ -183,9 +183,10 @@ public final class SubclassGenerator {
    * Emits one overriding method, whose body reads:
    *
    * <pre>{@code
-   * Object result = MockRuntime.dispatchSpy(mockatchaState, "total(java.lang.String)",
-   *         new Object[] { account });
-   * if (MockRuntime.callsReal(result, mockatchaDelegate)) {
+   * Object[] arguments = new Object[] { account };
+   * Object result = MockRuntime.dispatchSpy(mockatchaState, "total(java.lang.String)", arguments);
+   * if (MockRuntime.callsReal(mockatchaState, "total(java.lang.String)", arguments, result,
+   *         mockatchaDelegate)) {
    *     return mockatchaDelegate.total(account);
    * }
    * return MockRuntime.toInt(result);
@@ -234,6 +235,10 @@ public final class SubclassGenerator {
     visitor.visitVarInsn(Opcodes.ASTORE, resultSlot);
 
     Label answerFromRuntime = new Label();
+    visitor.visitVarInsn(Opcodes.ALOAD, 0);
+    visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
+    visitor.visitLdcInsn(MethodIdentity.of(method));
+    visitor.visitVarInsn(Opcodes.ALOAD, argumentsSlot);
     visitor.visitVarInsn(Opcodes.ALOAD, resultSlot);
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
     visitor.visitFieldInsn(Opcodes.GETFIELD, generated, DELEGATE_FIELD, "L" + target + ";");
@@ -241,7 +246,7 @@ public final class SubclassGenerator {
         Opcodes.INVOKESTATIC,
         RUNTIME,
         "callsReal",
-        "(Ljava/lang/Object;Ljava/lang/Object;)Z",
+        "(L" + STATE + ";Ljava/lang/String;[Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z",
         false);
     visitor.visitJumpInsn(Opcodes.IFEQ, answerFromRuntime);
 

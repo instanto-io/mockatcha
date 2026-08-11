@@ -459,7 +459,33 @@ Remove them, correct their arguments, or arrange them with lenient().
 Called with no arguments, it checks every mock created since the last such
 check, which scopes it to one test from an `@After` method.
 
-Extending `StrictTest` does that for you, along with the matcher check:
+### Fail at the call instead
+
+`strictStubs(true)` moves the report forward: a call that finds no arranged
+answer, on a method that has one, fails there and then.
+
+```java
+when(store.find("A-17")).thenReturn("timesheet");
+
+store.find("A-18");
+```
+
+```
+Mockatcha mock of Store was called with find([A-18]), which no arranged answer
+matched.
+This method does have arranged answers for:
+  find[A-17]
+Either the call or the stub has the wrong arguments. Use lenient() where a stub
+is deliberately narrow.
+```
+
+A spy is left alone, because an unstubbed call there is meant to reach the real
+object, and so is a method with no stubs of its own.
+
+### Both checks at once
+
+Extending `StrictTest` turns on strict stubbing for each test and runs the
+unused-stub and matcher checks after it:
 
 ```java
 @RunWith(TeaVMTestRunner.class)

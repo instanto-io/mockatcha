@@ -158,6 +158,81 @@ public class StrictStubbingTeaVmTest {
   }
 
   @Test
+  public void strictModeFailsACallThatMissesItsStub() {
+    Mockatcha.strictStubs(true);
+    try {
+      Store store = mock(Store.class);
+      when(store.find("A-17")).thenReturn("timesheet");
+
+      AssertionError failure = assertThrows(AssertionError.class, () -> store.find("A-18"));
+
+      assertTrue(failure.getMessage(), failure.getMessage().contains("A-18"));
+      assertTrue(failure.getMessage(), failure.getMessage().contains("A-17"));
+      assertTrue(failure.getMessage(), failure.getMessage().contains("wrong arguments"));
+    } finally {
+      Mockatcha.strictStubs(false);
+    }
+  }
+
+  @Test
+  public void strictModeLeavesAMethodWithNoStubsAlone() {
+    Mockatcha.strictStubs(true);
+    try {
+      Store store = mock(Store.class);
+      when(store.find("A-17")).thenReturn("timesheet");
+
+      store.audit("unstubbed method, no complaint");
+
+      assertEquals("timesheet", store.find("A-17"));
+    } finally {
+      Mockatcha.strictStubs(false);
+    }
+  }
+
+  @Test
+  public void strictModeLeavesASpyAlone() {
+    Mockatcha.strictStubs(true);
+    try {
+      RealStore real = new RealStore();
+      RealStore store = spy(RealStore.class, real);
+      doReturn("stubbed").when(store).find("A-17");
+
+      assertEquals("real", store.find("A-18"));
+      assertEquals("stubbed", store.find("A-17"));
+    } finally {
+      Mockatcha.strictStubs(false);
+    }
+  }
+
+  @Test
+  public void strictModeIgnoresALenientStub() {
+    Mockatcha.strictStubs(true);
+    try {
+      Store store = mock(Store.class);
+      lenient().when(store.find("A-17")).thenReturn("timesheet");
+
+      assertEquals(null, store.find("A-18"));
+    } finally {
+      Mockatcha.strictStubs(false);
+    }
+  }
+
+  @Test
+  public void strictModeDoesNotDisturbVerification() {
+    Mockatcha.strictStubs(true);
+    try {
+      Store store = mock(Store.class);
+      when(store.find("A-17")).thenReturn("timesheet");
+      store.find("A-17");
+
+      Mockatcha.verify(store).find("A-17");
+      Mockatcha.verify(store, Mockatcha.never()).find("A-18");
+    } finally {
+      Mockatcha.strictStubs(false);
+    }
+  }
+
+  @Test
   public void refusesAnObjectThatIsNotAMock() {
     assertThrows(IllegalArgumentException.class, () -> validateStubbing(new Object()));
   }

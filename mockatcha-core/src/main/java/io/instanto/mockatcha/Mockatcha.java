@@ -154,6 +154,15 @@ public final class Mockatcha {
   }
 
   /**
+   * Fails a call that found no arranged answer while the same method has one that did not match.
+   *
+   * <p>Off by default. {@link StrictTest} turns it on for the tests that extend it.
+   */
+  public static void strictStubs(boolean strict) {
+    MockRuntime.strictStubs(strict);
+  }
+
+  /**
    * Fails when a stub was arranged and no call ever matched it.
    *
    * <p>With no arguments, checks every mock created since the last such check, which scopes it to

@@ -1,6 +1,7 @@
 package io.instanto.mockatcha;
 
 import org.junit.After;
+import org.junit.Before;
 
 /**
  * A base class for tests that should fail on unused stubs and misplaced matchers.
@@ -20,8 +21,14 @@ import org.junit.After;
  */
 public abstract class StrictTest {
 
+  @Before
+  public void failOnCallsThatMissTheirStub() {
+    Mockatcha.strictStubs(true);
+  }
+
   @After
   public void checkMockatchaUsage() {
+    Mockatcha.strictStubs(false);
     AssertionError unusedStubs = null;
     try {
       Mockatcha.validateStubbing();
