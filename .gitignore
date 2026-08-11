@@ -6,4 +6,5 @@ target/
 # Working notes, kept locally rather than in the repository
 /CLASS_MOCKING_AND_SPIES.md
 /teavm-rule-support/PULL_REQUEST.md
+/teavm-rule-support/PULL_REQUEST.html
 /DOM_TESTING_SKETCH.md

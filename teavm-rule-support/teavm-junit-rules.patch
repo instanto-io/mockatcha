@@ -1,11 +1,11 @@
 diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
 new file mode 100644
-index 0000000..89e7eb3
+index 0000000..56c1001
 --- /dev/null
 +++ b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
 @@ -0,0 +1,69 @@
 +/*
-+ *  Copyright 2026 Alexey Andreev.
++ *  Copyright 2026 Carl Stainton.
 + *
 + *  Licensed under the Apache License, Version 2.0 (the "License");
 + *  you may not use this file except in compliance with the License.
@@ -75,12 +75,12 @@ index 0000000..89e7eb3
 +}
 diff --git a/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java b/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java
 new file mode 100644
-index 0000000..f8d6a5a
+index 0000000..71f50a5
 --- /dev/null
 +++ b/tests/src/test/java/org/teavm/tests/JUnitRuleOrderTest.java
 @@ -0,0 +1,73 @@
 +/*
-+ *  Copyright 2026 Alexey Andreev.
++ *  Copyright 2026 Carl Stainton.
 + *
 + *  Licensed under the Apache License, Version 2.0 (the "License");
 + *  you may not use this file except in compliance with the License.
@@ -154,12 +154,12 @@ index 0000000..f8d6a5a
 +}
 diff --git a/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java b/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java
 new file mode 100644
-index 0000000..32a6ef4
+index 0000000..5dc9356
 --- /dev/null
 +++ b/tests/src/test/java/org/teavm/tests/JUnitRuleTest.java
 @@ -0,0 +1,121 @@
 +/*
-+ *  Copyright 2026 Alexey Andreev.
++ *  Copyright 2026 Carl Stainton.
 + *
 + *  Licensed under the Apache License, Version 2.0 (the "License");
 + *  you may not use this file except in compliance with the License.
