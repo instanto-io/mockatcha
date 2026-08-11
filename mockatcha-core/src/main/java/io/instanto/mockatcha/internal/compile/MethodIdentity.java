@@ -4,12 +4,7 @@ import java.util.List;
 import org.teavm.extension.introspect.IntrospectMethod;
 import org.teavm.extension.introspect.IntrospectParameter;
 
-/**
- * Names a method for the runtime, in a form that separates overloads.
- *
- * <p>Proxied interfaces and generated subclasses both bake this string into their method bodies, so
- * it has one definition. Nothing reads it back apart from stub matching and verification messages.
- */
+/** Names a method for the runtime, in a form that separates overloads. */
 public final class MethodIdentity {
 
   private MethodIdentity() {}

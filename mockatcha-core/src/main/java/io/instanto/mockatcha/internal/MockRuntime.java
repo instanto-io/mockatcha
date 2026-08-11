@@ -15,10 +15,7 @@ import java.util.Objects;
 /** Runtime called by TeaVM-generated mock implementations. */
 public final class MockRuntime {
 
-  /**
-   * Returned by {@link #dispatchSpy} when a spy call has no stub and the real object should answer
-   * it. A dedicated instance keeps "no stub" distinct from a stub configured with a null result.
-   */
+  /** Returned by dispatch when nothing is stubbed, which a stubbed null must not look like. */
   public static final Object REAL_CALL = new Object();
 
   private static final Map<Object, MockState> STATES = new IdentityHashMap<>();
@@ -33,16 +30,12 @@ public final class MockRuntime {
     return new MockState(description);
   }
 
-  /** Answers {@code toString} on a generated mock or spy without running the mocked class's own. */
+  /** Answers {@code toString} on a generated mock or spy. */
   public static String describe(MockState state) {
     return state.description();
   }
 
-  /**
-   * Reports whether a generated method should hand this call to the real object.
-   *
-   * <p>A mock has no delegate, so it always answers from the runtime.
-   */
+  /** Reports whether a generated method should hand this call to the real object. */
   public static boolean callsReal(Object dispatchResult, Object delegate) {
     return dispatchResult == REAL_CALL && delegate != null;
   }
@@ -59,7 +52,7 @@ public final class MockRuntime {
     STATES.put(mock, state);
   }
 
-  /** Rejects a spy created without a real object to delegate to. */
+  /** Rejects a spy created without a delegate. */
   public static <T> T requireDelegate(T delegate) {
     if (delegate == null) {
       throw new IllegalArgumentException("spy() requires a real object to delegate to");
@@ -78,21 +71,11 @@ public final class MockRuntime {
     return result == REAL_CALL ? null : result;
   }
 
-  /**
-   * Dispatches a call on a generated spy.
-   *
-   * <p>Returns {@link #REAL_CALL} when the generated method should hand the call to the real
-   * object, and the configured result otherwise. Verification and {@code doReturn}-style stubbing
-   * never reach the real object.
-   */
+  /** Dispatches a call on a generated spy, returning {@link #REAL_CALL} when nothing is stubbed. */
   public static Object dispatchSpy(MockState state, String method, Object[] arguments) {
     return dispatch(state, method, arguments);
   }
 
-  /*
-   * Dispatch returns a boxed result, so a generated primitive method converts it here rather than
-   * repeating the boxing and default-value rules in generated code.
-   */
 
   public static boolean toBoolean(Object result) {
     return result != null && result != REAL_CALL && (Boolean) result;
@@ -126,12 +109,12 @@ public final class MockRuntime {
     return isEmpty(result) ? 0D : ((Number) result).doubleValue();
   }
 
-  /** Answers {@code equals} on a generated mock or spy, which is never the object it stands in for. */
+  /** Answers {@code equals} on a generated mock or spy. */
   public static boolean sameInstance(Object mock, Object other) {
     return mock == other;
   }
 
-  /** Answers {@code hashCode} on a generated mock or spy without consulting the mocked class. */
+  /** Answers {@code hashCode} on a generated mock or spy. */
   public static int identityHashCode(Object mock) {
     return System.identityHashCode(mock);
   }
@@ -153,12 +136,7 @@ public final class MockRuntime {
     MATCHERS.clear();
   }
 
-  /**
-   * Arranges answers for the call that follows, without letting that call run.
-   *
-   * <p>This is how {@code doReturn(...).when(spy).method()} avoids the real method that plain
-   * {@code when(spy.method())} would evaluate during setup.
-   */
+  /** Arranges answers for the call that follows, without letting that call run. */
   public static void beginStubbing(Object mock, List<Answer<?>> answers) {
     MockState state = requireState(mock);
     stubbing = new StubbingRequest(state, new ArrayList<>(answers));
@@ -269,8 +247,7 @@ public final class MockRuntime {
   /**
    * Arranges answers for a method chosen by name rather than by evaluating a call.
    *
-   * <p>Passing null arguments matches every call of that name. This is the addressing scheme
-   * Jasmine-shaped APIs use; the everyday Mockito-shaped path is {@link #beginStubbing}.
+   * <p>Null arguments match every call of that name.
    */
   public static void arrangeByName(
       Object mock, String methodName, Object[] arguments, List<Answer<?>> answers) {

@@ -8,12 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * The runtime half of {@link ObjectMatchers}.
- *
- * <p>The generated reader supplies property values; everything else — checking the property names
- * are real, comparing values, describing the matcher — is ordinary Java.
- */
+/** The runtime half of {@link ObjectMatchers}. */
 public final class PropertyMatching {
 
   /** Returned by a generated reader for a property it does not know. */
@@ -57,12 +52,7 @@ public final class PropertyMatching {
     return true;
   }
 
-  /**
-   * Fails while the matcher is being built rather than while it is being applied.
-   *
-   * <p>A misspelled property would otherwise match nothing and look like a behaviour failure, so
-   * the message lists the names that do exist.
-   */
+  /** Fails when the matcher is built, so a misspelled property does not silently match nothing. */
   private static void requireKnown(PropertyReader<?> reader, String property) {
     List<String> names = Arrays.asList(reader.names());
     if (!names.contains(property)) {

@@ -3,10 +3,7 @@ package io.instanto.mockatcha;
 /**
  * Arranges answers before the call they describe is written.
  *
- * <p>{@code when(spy.total())} has to evaluate {@code spy.total()} to know which call is being
- * configured, which runs the real method once. {@code doReturn(...).when(spy).total()} arranges the
- * answer first and never lets the real method run, which matters when it is slow, destructive, or
- * unavailable in a browser.
+ * <p>Unlike {@code when(spy.total())}, a spy's real method never runs during setup.
  */
 public interface Stubber {
 
@@ -16,7 +13,7 @@ public interface Stubber {
 
   Stubber doAnswer(Answer<?> answer);
 
-  /** Arranges a void method, or an ignored result, to do nothing. */
+  /** Arranges the call to do nothing. */
   Stubber doNothing();
 
   /** Returns the mock so the call being configured can be written next. */

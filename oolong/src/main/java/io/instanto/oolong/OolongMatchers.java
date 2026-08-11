@@ -11,13 +11,9 @@ import java.util.regex.Pattern;
 /**
  * Argument matchers that describe the shape of a value rather than its exact identity.
  *
- * <p>These complement {@code Mockatcha.ArgumentMatchers}, and follow the same rule: if one argument
- * of a call uses a matcher, every argument must use one.
- *
- * <p>Jasmine's {@code objectContaining} has no direct equivalent here. It inspects arbitrary
- * properties of a JavaScript object, which Java has no portable way to do — TeaVM strips reflection
- * unless a type opts in. {@link #mapContaining} covers the case where the value really is a map,
- * and {@code argThat} covers the rest with an ordinary Java condition.
+ * <p>These follow the same rule as {@code ArgumentMatchers}: if one argument of a call uses a
+ * matcher, every argument must use one. To match an object by its properties, see
+ * {@link ObjectMatchers}.
  */
 public final class OolongMatchers {
 
@@ -39,11 +35,7 @@ public final class OolongMatchers {
         "stringMatching(\"" + regularExpression + "\")");
   }
 
-  /**
-   * Matches an array or collection that contains all of these items, in any order.
-   *
-   * <p>Extra items are allowed, which is what makes this a shape rather than an equality check.
-   */
+  /** Matches an array or collection containing all of these items, in any order. Extra items are allowed. */
   public static <T> T containing(Object... items) {
     Object[] wanted = items.clone();
     return argThat(

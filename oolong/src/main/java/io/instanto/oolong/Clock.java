@@ -7,11 +7,9 @@ import org.teavm.jso.JSObject;
 /**
  * A clock a test advances by hand.
  *
- * <p>Browser code that polls, debounces, retries, or animates is hard to test against real time: a
- * test either sleeps, which makes it slow and flaky, or reaches inside the code under test to
- * expose its timers. Installing this clock replaces the browser's timer functions, so work
- * scheduled through {@code setTimeout}, {@code setInterval}, or
- * {@code requestAnimationFrame} waits until the test says otherwise.
+ * <p>While installed, work scheduled through {@code setTimeout}, {@code setInterval}, or
+ * {@code requestAnimationFrame} waits until {@link #tick} reaches it, and {@code Date},
+ * {@code System.currentTimeMillis}, and {@code performance.now} report this clock's time.
  *
  * <pre>{@code
  * clock().install();
@@ -24,14 +22,12 @@ import org.teavm.jso.JSObject;
  * }
  * }</pre>
  *
- * <p>Two constraints follow from replacing global functions. Install and uninstall within one
- * synchronous test, because anything else scheduling work in the meantime — including TeaVM's own
- * asynchronous support — is queued rather than run. And uninstall in a {@code finally} block, so a
- * failing assertion does not leave the browser's timers replaced for the tests that follow.
+ * <p>Install and uninstall within one synchronous test: anything else scheduling work meanwhile,
+ * including TeaVM's asynchronous support, is queued rather than run. Uninstall in a
+ * {@code finally} block or an {@code @After} method.
  */
 public final class Clock {
 
-  /** Stops a callback that keeps rescheduling itself from hanging the browser silently. */
   private static final int MAXIMUM_CALLBACKS_PER_TICK = 100_000;
 
   private final List<ScheduledCall> scheduled = new ArrayList<>();
@@ -43,10 +39,9 @@ public final class Clock {
   Clock() {}
 
   /**
-   * Replaces the browser's timer functions until {@link #uninstall} is called.
+   * Replaces the browser's timer and time functions until {@link #uninstall} is called.
    *
-   * <p>The clock starts at a fixed instant rather than the real one, so a test that formats or
-   * compares times is reproducible.
+   * <p>Starts at a fixed instant rather than the real one.
    */
   public Clock install() {
     if (installed) {
@@ -54,12 +49,12 @@ public final class Clock {
     }
     scheduled.clear();
     elapsed = 0;
-    BrowserTimers.install(this::schedule, this::cancel, () -> now());
+    BrowserTimers.install(this::schedule, this::cancel, () -> now(), () -> elapsed);
     installed = true;
     return this;
   }
 
-  /** Restores the browser's timer functions and discards anything still queued. */
+  /** Restores the browser's own functions and discards anything still queued. */
   public void uninstall() {
     if (!installed) {
       return;
@@ -79,12 +74,12 @@ public final class Clock {
     return this;
   }
 
-  /** The instant this clock reports, which is what {@code Date.now()} returns while installed. */
+  /** The instant this clock reports. */
   public long now() {
     return baseTime + elapsed;
   }
 
-  /** How many callbacks are waiting, which is useful when asserting that nothing was scheduled. */
+  /** How many callbacks are waiting. */
   public int pending() {
     return scheduled.size();
   }
@@ -92,9 +87,8 @@ public final class Clock {
   /**
    * Advances the clock, running everything that falls due along the way.
    *
-   * <p>Callbacks run in due order and see the time they were scheduled for, so a callback that
-   * schedules more work still observes a consistent clock. When everything due has run, the clock
-   * sits at exactly the requested instant.
+   * <p>Callbacks run in due order and see the time they were scheduled for, including work a
+   * callback schedules while running. The clock ends at exactly the requested instant.
    */
   public void tick(long milliseconds) {
     if (!installed) {

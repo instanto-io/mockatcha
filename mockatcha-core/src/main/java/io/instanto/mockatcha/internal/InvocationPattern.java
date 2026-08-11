@@ -5,13 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * The calls a stub answers, or the calls a verification counts.
- *
- * <p>A pattern usually comes from an evaluated call, and then names one method identifier and one
- * matcher per argument. A pattern may also address a method by name alone, which is how a caller
- * arranges behaviour without evaluating the call it describes.
- */
+/** The calls a stub answers, or the calls a verification counts. */
 final class InvocationPattern {
 
   private final String method;
@@ -25,7 +19,7 @@ final class InvocationPattern {
         arguments == null ? null : Collections.unmodifiableList(new ArrayList<>(arguments));
   }
 
-  /** Matches one method identifier, with one matcher for each of its arguments. */
+  /** Matches one method identifier, with a matcher for each argument. */
   static InvocationPattern of(String method, List<RegisteredMatcher> arguments) {
     return new InvocationPattern(method, false, Objects.requireNonNull(arguments, "arguments"));
   }
@@ -40,7 +34,7 @@ final class InvocationPattern {
     return new InvocationPattern(methodName, true, Objects.requireNonNull(arguments, "arguments"));
   }
 
-  /** The method name this pattern addresses, without its parameter types. */
+  /** The method name this pattern addresses. */
   String methodName() {
     int parenthesis = method.indexOf('(');
     return parenthesis < 0 ? method : method.substring(0, parenthesis);
@@ -68,7 +62,7 @@ final class InvocationPattern {
     if (!byName) {
       return this.method.equals(method);
     }
-    // A method identifier is name(parameterTypes), and a Java method name cannot contain '('.
+    // An identifier is name(parameterTypes); a Java method name cannot contain '('.
     return method.length() > this.method.length()
         && method.startsWith(this.method)
         && method.charAt(this.method.length()) == '(';

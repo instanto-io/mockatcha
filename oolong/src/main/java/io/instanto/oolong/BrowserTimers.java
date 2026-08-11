@@ -4,49 +4,46 @@ import org.teavm.jso.JSBody;
 import org.teavm.jso.JSFunctor;
 import org.teavm.jso.JSObject;
 
-/**
- * The browser side of the fake clock.
- *
- * <p>Jasmine replaces the global timer functions so that scheduled work can be driven by hand.
- * TeaVM compiles {@code Window.setTimeout} and friends to those same globals, so the same trick
- * works here: replace them with functions that call back into Java, and keep the originals so they
- * can be put back.
- */
+/** Replaces the browser's timer and time functions with ones that call back into {@link Clock}. */
 final class BrowserTimers {
 
   private BrowserTimers() {}
 
-  /** Called from the browser when application code schedules work. Returns a cancellation handle. */
   @JSFunctor
   interface ScheduleFunction extends JSObject {
     int schedule(JSObject callback, int delay, boolean repeating);
   }
 
-  /** Called from the browser when application code cancels scheduled work. */
   @JSFunctor
   interface CancelFunction extends JSObject {
     void cancel(int handle);
   }
 
-  /** Called from the browser whenever it asks for the current time. */
   @JSFunctor
   interface NowFunction extends JSObject {
     double now();
   }
 
+  /*
+   * Date is replaced wholesale rather than having its `now` overwritten, because TeaVM compiles
+   * System.currentTimeMillis() to `new Date().getTime()`. The replacement shares Date's prototype
+   * so `instanceof` and every instance method keep working.
+   */
   @JSBody(
-      params = {"schedule", "cancel", "now"},
+      params = {"schedule", "cancel", "now", "elapsed"},
       script =
           "var g = typeof globalThis !== 'undefined' ? globalThis : window;"
               + "if (g.__oolongClock) {"
               + "  throw new Error('The Oolong clock is already installed');"
               + "}"
+              + "var realDate = g.Date;"
               + "g.__oolongClock = {"
               + "  setTimeout: g.setTimeout, clearTimeout: g.clearTimeout,"
               + "  setInterval: g.setInterval, clearInterval: g.clearInterval,"
               + "  requestAnimationFrame: g.requestAnimationFrame,"
               + "  cancelAnimationFrame: g.cancelAnimationFrame,"
-              + "  now: Date.now"
+              + "  Date: realDate,"
+              + "  performanceNow: g.performance ? g.performance.now : null"
               + "};"
               + "g.setTimeout = function(fn, delay) {"
               + "  var extra = Array.prototype.slice.call(arguments, 2);"
@@ -59,11 +56,30 @@ final class BrowserTimers {
               + "g.clearTimeout = function(handle) { cancel(handle | 0); };"
               + "g.clearInterval = function(handle) { cancel(handle | 0); };"
               + "g.requestAnimationFrame = function(fn) {"
-              + "  return schedule(function() { fn(Date.now()); }, 16, false);"
+              + "  return schedule(function() { fn(now()); }, 16, false);"
               + "};"
               + "g.cancelAnimationFrame = function(handle) { cancel(handle | 0); };"
-              + "Date.now = function() { return now(); };")
-  static native void install(ScheduleFunction schedule, CancelFunction cancel, NowFunction now);
+              + "function FakeDate(a, b, c, d, e, f, h) {"
+              + "  if (!(this instanceof FakeDate)) { return new realDate(now()).toString(); }"
+              + "  switch (arguments.length) {"
+              + "    case 0: return new realDate(now());"
+              + "    case 1: return new realDate(a);"
+              + "    case 2: return new realDate(a, b);"
+              + "    case 3: return new realDate(a, b, c);"
+              + "    case 4: return new realDate(a, b, c, d);"
+              + "    case 5: return new realDate(a, b, c, d, e);"
+              + "    case 6: return new realDate(a, b, c, d, e, f);"
+              + "    default: return new realDate(a, b, c, d, e, f, h);"
+              + "  }"
+              + "}"
+              + "FakeDate.prototype = realDate.prototype;"
+              + "FakeDate.now = function() { return now(); };"
+              + "FakeDate.parse = realDate.parse;"
+              + "FakeDate.UTC = realDate.UTC;"
+              + "g.Date = FakeDate;"
+              + "if (g.performance) { g.performance.now = function() { return elapsed(); }; }")
+  static native void install(
+      ScheduleFunction schedule, CancelFunction cancel, NowFunction now, NowFunction elapsed);
 
   @JSBody(
       params = {},
@@ -77,16 +93,12 @@ final class BrowserTimers {
               + "g.clearInterval = saved.clearInterval;"
               + "g.requestAnimationFrame = saved.requestAnimationFrame;"
               + "g.cancelAnimationFrame = saved.cancelAnimationFrame;"
-              + "Date.now = saved.now;"
+              + "g.Date = saved.Date;"
+              + "if (g.performance && saved.performanceNow) {"
+              + "  g.performance.now = saved.performanceNow;"
+              + "}"
               + "delete g.__oolongClock;")
   static native void uninstall();
-
-  @JSBody(
-      params = {},
-      script =
-          "var g = typeof globalThis !== 'undefined' ? globalThis : window;"
-              + "return !!g.__oolongClock;")
-  static native boolean installed();
 
   @JSBody(params = {"callback"}, script = "callback();")
   static native void run(JSObject callback);

@@ -30,10 +30,9 @@ public final class Mockatcha {
   /**
    * Generates a mock implementation of an interface or an ordinary class.
    *
-   * <p>The class argument must be visible as a constant to TeaVM at the call site.
-   *
-   * <p>A mocked class must be non-final and have a no-argument constructor, which Mockatcha runs.
-   * Static, private, and final methods keep their real behaviour because they cannot be overridden.
+   * <p>The class must be a compile-time constant. A mocked class must be non-final and have a
+   * no-argument constructor, which is run. Static, private, and final methods keep their real
+   * behaviour.
    */
   @Meta
   public static native <T> T mock(Class<T> type);
@@ -41,11 +40,8 @@ public final class Mockatcha {
   /**
    * Generates a spy that records calls and hands unstubbed ones to {@code delegate}.
    *
-   * <p>The spy is a separate object from {@code delegate}, so {@code ==} distinguishes them, and a
-   * real method calling another method on itself reaches the delegate rather than the spy.
-   *
-   * <p>The type is a separate argument because TeaVM must know the concrete class while it
-   * compiles the call.
+   * <p>The spy is a separate object from {@code delegate}, so a real method calling another method
+   * on itself reaches the delegate rather than the spy.
    */
   @Meta
   public static native <T> T spy(Class<T> type, T delegate);
@@ -55,22 +51,22 @@ public final class Mockatcha {
     return MockRuntime.when();
   }
 
-  /** Arranges a result without evaluating the call, which matters for spies. */
+  /** Arranges a result without evaluating the call. */
   public static Stubber doReturn(Object value) {
     return new StubberImpl().doReturn(value);
   }
 
-  /** Arranges a failure without evaluating the call, which matters for spies. */
+  /** Arranges a failure without evaluating the call. */
   public static Stubber doThrow(Throwable throwable) {
     return new StubberImpl().doThrow(throwable);
   }
 
-  /** Arranges a calculated result without evaluating the call, which matters for spies. */
+  /** Arranges a calculated result without evaluating the call. */
   public static Stubber doAnswer(Answer<?> answer) {
     return new StubberImpl().doAnswer(answer);
   }
 
-  /** Arranges a call to do nothing, which suppresses a spy's real method. */
+  /** Arranges a call to do nothing, suppressing a spy's real method. */
   public static Stubber doNothing() {
     return new StubberImpl().doNothing();
   }
@@ -132,12 +128,7 @@ public final class Mockatcha {
     };
   }
 
-  /**
-   * Expects this call once, and nothing else on the same mock.
-   *
-   * <p>Useful where the absence of other calls is the point, such as a cache that must not reach
-   * its backing store a second time.
-   */
+  /** Expects this call once, and nothing else on the same mock. */
   public static VerificationMode only() {
     return new VerificationMode() {
       @Override
@@ -188,13 +179,7 @@ public final class Mockatcha {
     generate(type, delegate);
   }
 
-  /**
-   * Emits the mock or spy for one call site.
-   *
-   * <p>An interface goes to TeaVM's proxy generator, which already produces a class implementing
-   * every abstract method. An ordinary class needs a generated subclass instead, because the proxy
-   * generator supplies bodies only for methods it finds abstract.
-   */
+  /** Emits the mock or spy for one call site. */
   private static <T> void generate(IntrospectClass<T> type, Value<T> delegate) {
     String description =
         (delegate == null ? "Mockatcha mock of " : "Mockatcha spy of ") + type.name();
@@ -227,10 +212,7 @@ public final class Mockatcha {
         });
   }
 
-  /**
-   * Instantiates the generated subclass for a mocked class, or reports why the class is out of
-   * bounds and returns null.
-   */
+  /** Instantiates the generated subclass, or reports why the class is unsupported and returns null. */
   private static <T> Value<T> subclass(
       IntrospectClass<T> type, Value<MockState> state, Value<T> delegate) {
     String rejection = SubclassGenerator.rejectionReason(type);
@@ -268,13 +250,8 @@ public final class Mockatcha {
     return emit(() -> MockRuntime.invokeObject(state.get(), methodId, arguments.get()));
   }
 
-  /**
-   * Emits the runtime decision and, when nothing is stubbed, the call to the real object.
-   *
-   * <p>The real call is emitted inline rather than passed as a callback because TeaVM resolves the
-   * target method while it inlines this fragment. Verification and arranged answers return before
-   * the branch, so neither reaches the real object.
-   */
+  // The real call is emitted inline rather than passed as a callback, because TeaVM resolves the
+  // target method while it inlines this fragment.
   private static <T> Value<Object> emitSpyDispatch(
       Value<MockState> state,
       Value<T> delegate,
@@ -291,7 +268,7 @@ public final class Mockatcha {
         });
   }
 
-  /** Converts the boxed dispatch result to the method's declared return type and returns it. */
+  /** Converts the boxed dispatch result to the declared return type and returns it. */
   private static void emitReturn(IntrospectMethod method, Value<Object> result) {
     switch (method.returnType().name()) {
       case "void":

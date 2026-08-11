@@ -1,85 +1,60 @@
 # Mockatcha
 
-Tests are easiest to understand when they exercise real application code while
-replacing only its external boundaries. A service can then be tested without
-opening a database, making a network request, or starting a complete
-application.
+Mockatcha is a mocking library for Java tests that run in a browser through
+TeaVM. If you have used Mockito, you already know most of it.
 
-On the JVM, libraries such as Mockito can create those replacements by
-generating or changing bytecode while a test is running. TeaVM prepares Java
-code ahead of time for JavaScript, so that runtime machinery is not available
-in a browser test.
+A test usually wants to exercise one real class while replacing the things
+around it — the repository, the remote service, the clock. Mockatcha builds
+those replacements for you.
 
-Mockatcha provides familiar Mockito-style mocking for tests compiled with
-TeaVM. It generates each mock while TeaVM compiles the test, then uses a small
-Java runtime to record calls and return the configured answers.
+```java
+GreetingService greetings = mock(GreetingService.class);
+when(greetings.hello("Ada")).thenReturn("Hello Ada");
 
-This guide starts with one small test and introduces stubbing, matching, and
-verification as they become useful. The
-[`mockatcha-examples`](mockatcha-examples) module contains a complete worked
-example.
+assertEquals("Hello Ada", new GreetingComponent(greetings).greet("Ada"));
+verify(greetings).hello("Ada");
+```
 
-## Why Mockatcha exists
+This guide starts with the simplest possible test and adds one idea at a time.
+The companion library, [Oolong](oolong/README.md), adds a fake clock and a
+second way of writing the same things.
 
-A TeaVM library should be testable through the same public Java API that an
-application uses in the browser. Without a TeaVM-compatible mocking library,
-its tests must usually do one of the following:
-
-- run only on the JVM and leave the generated browser behaviour untested;
-- maintain handwritten replacements for every service boundary; or
-- start much more of the application than the class under test needs.
-
-Mockatcha supplies the small replacement objects. The class under test remains
-ordinary Java, and the test runs in a real browser through TeaVM's test runner.
-
-## Principles
-
-- **Keep the Mockito shape familiar.** Java developers should recognise
-  `mock`, `when`, `thenReturn`, and `verify` without learning another testing
-  language.
-- **Generate before the test runs.** Mock implementations are prepared by
-  TeaVM rather than created through runtime bytecode changes.
-- **Mock boundaries, not application logic.** A test uses real domain and
-  service classes while replacing storage, transport, clocks, or similar
-  collaborators.
-- **Keep browser tests small.** Mockatcha does not start CDI, a web server, or
-  an application framework.
-- **Stay independent of Sarto and Verrai.** Any Java library tested with TeaVM
-  can use Mockatcha.
-- **Make the current boundary honest.** Mockatcha mocks interfaces and ordinary
-  classes. It does not pretend to support static methods, constructors, or
-  final classes.
-
-## Contents
-
-| Area | Jump to |
+| | |
 | --- | --- |
-| Understand it | [Why it exists](#why-mockatcha-exists) · [Principles](#principles) · [Three core ideas](#the-three-core-ideas) |
-| Start using it | [First browser test](#your-first-browser-test) |
-| Describe behaviour | [Return values](#choose-what-a-mock-returns) · [Flexible arguments](#match-flexible-arguments) · [Answers and failures](#calculate-an-answer-or-report-a-failure) · [Changing results](#return-different-results-over-time) |
-| Check behaviour | [Verify calls](#verify-important-calls) · [Capture arguments](#capture-an-argument-the-test-could-not-predict) · [Call history](#inspect-or-clear-call-history) |
-| Keep real behaviour | [Mock a class](#mock-an-ordinary-class) · [Spy on an object](#keep-real-behaviour-with-a-spy) · [Arrange before calling](#arrange-an-answer-before-the-call-runs) |
-| See it in context | [Timesheet example](#the-timesheet-example) · [How generation works](#how-the-mock-is-created) |
-| Reference | [Current coverage](#current-coverage) · [Modules](#choose-modules) · [Maven setup](#add-mockatcha-to-a-teavm-test-suite) · [Build](#build-this-repository) |
+| **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
+| **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Change over time](#change-the-answer-over-time) |
+| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [Capture an argument](#capture-an-argument) |
+| **Beyond interfaces** | [Mock a class](#mock-a-class) · [Spy on a real object](#spy-on-a-real-object) · [Set up without calling](#set-up-without-calling-the-method) |
+| **Reference** | [Reuse and reset](#reuse-and-reset) · [What it cannot do](#what-it-cannot-do) · [Modules](#modules) · [Build](#build-this-repository) |
 
-## The three core ideas
+## Setup
 
-A mock is a generated stand-in for a Java interface or class. It replaces a
-collaborator such as a repository or remote service.
+Add Mockatcha to your test dependencies:
 
-Stubbing tells that mock what to return for a particular call. Calls without a
-matching stub return Java's usual empty value: `null`, `false`, or zero.
+```xml
+<dependency>
+  <groupId>io.instanto</groupId>
+  <artifactId>mockatcha-core</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <scope>test</scope>
+</dependency>
+```
 
-Verification checks whether an important call happened. It is most useful for
-observable effects, such as saving a record or sending a notification.
+You will also need `teavm-classlib`, `teavm-junit`, and `junit` on the test
+classpath, and Surefire told to run the tests in a browser:
 
-The class being tested is still real. Mockatcha replaces only the collaborators
-passed to it.
+```xml
+<systemPropertyVariables>
+  <teavm.junit.target>${project.build.directory}/js-tests</teavm.junit.target>
+  <teavm.junit.js.runner>browser-chrome</teavm.junit.js.runner>
+</systemPropertyVariables>
+```
 
-## Your first browser test
+Until Mockatcha is published, build this repository and install it locally.
 
-Most tests start with an interface boundary. Suppose a greeting component
-obtains its text through this one:
+## Your first test
+
+Say a component gets its text from a service:
 
 ```java
 public interface GreetingService {
@@ -87,8 +62,8 @@ public interface GreetingService {
 }
 ```
 
-A TeaVM test can replace that boundary, choose its response, and exercise the
-real component:
+A test can replace that service, decide what it returns, and run the real
+component against it:
 
 ```java
 import static io.instanto.mockatcha.Mockatcha.mock;
@@ -106,80 +81,91 @@ import org.teavm.junit.TeaVMTestRunner;
 public class GreetingComponentTest {
 
     @Test
-    public void displaysTheGreetingReturnedByTheService() {
+    public void showsTheGreetingFromTheService() {
         GreetingService greetings = mock(GreetingService.class);
         when(greetings.hello("Ada")).thenReturn("Hello Ada");
 
-        GreetingComponent component = new GreetingComponent(greetings);
-        String displayed = component.greet("Ada");
+        String shown = new GreetingComponent(greetings).greet("Ada");
 
-        assertEquals("Hello Ada", displayed);
+        assertEquals("Hello Ada", shown);
         verify(greetings).hello("Ada");
     }
 }
 ```
 
-`@RunWith(TeaVMTestRunner.class)` compiles and runs the test through TeaVM.
-`@SkipJVM` prevents JUnit from also trying to execute the generated mock call
-directly on the JVM.
+Three things are happening.
 
-## Choose what a mock returns
+**`mock(...)`** creates a stand-in. Every method on it does nothing and returns
+an empty value — `null`, `0`, or `false` — until you say otherwise.
 
-Pass the call whose behaviour matters to `when`, then supply its answer:
+**`when(...)`** says what one particular call should return.
+
+**`verify(...)`** checks that a call happened.
+
+The two annotations are TeaVM's. `@RunWith(TeaVMTestRunner.class)` compiles and
+runs the test in a browser; `@SkipJVM` stops JUnit from also trying to run it on
+the JVM, where the mock does not exist.
+
+## Return a value
+
+Pass the call you care about to `when`, then say what it should give back:
 
 ```java
 when(profiles.find("A-17")).thenReturn(new Profile("A-17", "Ada"));
 ```
 
-The setup call is not kept in the mock's call history. Later calls with the
-same method and arguments receive the configured profile.
+Every later call with those exact arguments gets that profile. Calls with
+different arguments are unaffected and still return `null`.
 
-Calls are matched by method, parameter types, and argument values. Overloaded
-methods can therefore be configured independently.
+Overloads are separate: `total(String)` and `total(int)` are configured
+independently.
 
-## Match flexible arguments
+## Flexible arguments
 
-Sometimes a test cares about the kind of argument rather than one exact value:
+Sometimes the exact argument is not the point:
 
 ```java
 when(profiles.find(anyString())).thenReturn(defaultProfile);
 ```
 
-`any()`, `eq(...)`, `isNull()`, `isNotNull()`, a matcher for each primitive
-type, and `argThat(...)` for a condition of your own are available. If one
-argument uses a matcher, every argument in that call must use one:
+There is a matcher for each primitive type, plus `any()`, `eq(...)`,
+`isNull()`, `isNotNull()`, and `argThat(...)` for a condition of your own:
+
+```java
+when(store.save(argThat(timesheet -> timesheet.hours() > 40))).thenReturn(true);
+```
+
+One rule to remember: **if any argument uses a matcher, they all must.** Mixing
+a matcher with a plain value in the same call is ambiguous, so wrap the plain
+one in `eq`:
 
 ```java
 when(calculator.total(anyInt(), eq("EUR"))).thenReturn(42);
 ```
 
-This rule keeps the intended call unambiguous. Prefer exact values when they
-make the behaviour clearer; use a matcher when the exact value is genuinely
-not part of the test.
+Prefer exact values when they make the test clearer. Reach for a matcher when
+the value genuinely does not matter.
 
-## Calculate an answer or report a failure
+## Calculate an answer or fail
 
-Use `thenAnswer` when the result depends on the arguments:
+When the result depends on the arguments, use `thenAnswer`:
 
 ```java
 when(greetings.hello(anyString()))
         .thenAnswer(call -> "Hello " + call.argument(0));
 ```
 
-The supplied `Invocation` contains the mock, stable method identifier, and
-arguments for that call.
-
-Use `thenThrow` to describe a boundary failure and test how the real class
-responds:
+When you want to see how your class copes with a broken collaborator, use
+`thenThrow`:
 
 ```java
 when(profiles.find("A-17"))
         .thenThrow(new IllegalStateException("Profile store unavailable"));
 ```
 
-## Return different results over time
+## Change the answer over time
 
-Several answers can be configured for the same call:
+Chain answers to describe something that changes:
 
 ```java
 when(status.current())
@@ -187,109 +173,98 @@ when(status.current())
         .thenReturn("ready");
 ```
 
-The first call returns `starting`. The second and later calls return `ready`.
-Repeating the final answer makes a changing boundary deterministic without
-requiring a timing loop in the test.
+The first call gets `starting`; every call after that gets `ready`. The last
+answer repeats, so you never have to predict exactly how many times your code
+will ask.
 
-## Verify important calls
+## Verify a call
 
-`verify(mock)` expects the following call to have happened once:
+`verify` checks that something happened:
 
 ```java
 verify(repository).save(report);
 ```
 
-Use `times` when the count is itself part of the behaviour:
+It reads as an assertion and fails like one. It is most useful for effects you
+cannot see in a return value — saving a record, sending a notification.
+
+Matchers work here too:
+
+```java
+verify(notifications).send(anyString());
+```
+
+## How many times
+
+By default `verify` expects exactly one call. When the count matters, say so:
 
 ```java
 verify(repository, times(2)).save(report);
-```
-
-Use `never` for an effect that must not happen:
-
-```java
 verify(notifications, never()).send(anyString());
+verify(feed, atLeastOnce()).refresh();
+verify(feed, atLeast(2)).refresh();
+verify(feed, atMost(5)).refresh();
 ```
 
-When the exact count is not the point, `atLeastOnce()`, `atLeast(n)`, and
-`atMost(n)` say so. `only()` expects the call once and nothing else on that
-mock, which is how to state that a cache did not reach its backing store a
-second time:
+`only()` is stronger than any of these. It says the call happened once **and
+nothing else was called on that mock** — which is how to show that a cache did
+not go back to its store:
 
 ```java
 verify(store, only()).load("A-17");
 ```
 
-Matchers work in verification just as they do in stubbing. Verification calls
-are not added to the call history.
+## Capture an argument
 
-## Capture an argument the test could not predict
-
-Matchers answer "was it called with something like this". When the argument is
-built inside the code under test, the question is "what was it called with", and
-a captor answers that:
+Matchers ask "was it called with something like this". Sometimes you need to
+ask "what was it called with" — because the argument was built inside the class
+you are testing and the test could not have predicted it.
 
 ```java
 ArgumentCaptor<Timesheet> saved = ArgumentCaptor.forClass(Timesheet.class);
 
+service.submit("A-17", 38);
+
 verify(repository).save(saved.capture());
-
 assertEquals("A-17", saved.getValue().employeeId());
+assertEquals(38, saved.getValue().hours());
 ```
 
-`capture()` is a matcher, so the same all-or-nothing rule applies to the other
-arguments of that call. `getAllValues()` returns every captured argument when
-the call happened more than once, and `getValue()` returns the most recent.
+`capture()` counts as a matcher, so the all-or-nothing rule applies to the other
+arguments of that call.
 
-## Inspect or clear call history
+If the call happened more than once, `getAllValues()` gives you every argument
+in order and `getValue()` gives you the last.
 
-Most tests should prefer `verify`, which expresses the intended behaviour
-directly. `mockingDetails` is available when a diagnostic or specialised
-assertion needs the complete call history:
+## Mock a class
 
-```java
-MockingDetails details = mockingDetails(repository);
-boolean generatedMock = details.isMock();
-List<Invocation> calls = details.getInvocations();
-```
-
-`clearInvocations(mock)` removes recorded calls but keeps stubbing. `reset(mock)`
-removes both calls and stubbing. These operations are useful for a deliberately
-shared fixture, although small tests normally create fresh mocks instead.
-
-## Mock an ordinary class
-
-Not every boundary is an interface. `mock` accepts a class as well:
+Not every boundary is an interface. `mock` takes a class too:
 
 ```java
 PricingService pricing = mock(PricingService.class);
 when(pricing.total("A-17")).thenReturn(42);
 ```
 
-Mockatcha generates a subclass while TeaVM compiles the test, so the mock really
-is a `PricingService` and can be passed anywhere one is expected. Its
-no-argument constructor runs; every public and protected method is replaced.
+The result really is a `PricingService` and can be passed anywhere one is
+expected. Its no-argument constructor runs, and every public and protected
+method is replaced.
 
-Three limits follow from generating a subclass, and Mockatcha does not hide
-them:
+A few things to know:
 
-- a `final` class, an enum, a record, or a class without a no-argument
-  constructor is rejected while TeaVM compiles the test, naming the type and the
-  rule it failed;
+- the class must not be `final`, and must have a no-argument constructor. If it
+  does not, the test fails to compile with a message naming the rule it broke;
 - `static`, `private`, and `final` methods keep their real behaviour, because a
-  subclass cannot override them; and
+  subclass cannot replace them; and
 - `equals`, `hashCode`, and `toString` answer by identity and with a fixed
-  description. They are neither recorded nor stubbed, so logging a mock never
-  runs real code.
+  description, so printing a mock never runs real code.
 
-Prefer an interface where the design allows one. Class mocking exists for
-boundaries you do not control or have not yet extracted.
+Prefer an interface where your design allows one. Class mocking is for
+boundaries you do not control.
 
-## Keep real behaviour with a spy
+## Spy on a real object
 
 A mock replaces every method. A spy keeps a real object and replaces only the
-calls a test names, which suits a working collaborator better than rebuilding
-its behaviour in stubs:
+calls you name:
 
 ```java
 InMemoryTimesheetRepository real = new InMemoryTimesheetRepository();
@@ -298,31 +273,31 @@ InMemoryTimesheetRepository timesheets = spy(InMemoryTimesheetRepository.class, 
 when(timesheets.findDraft("A-17")).thenReturn(new Timesheet("A-17", 46));
 ```
 
-`findDraft` now answers from the stub. Every other call reaches `real` and is
+`findDraft` now answers from the stub. Everything else runs for real and is
 still recorded, so `verify(timesheets).markSubmitted("A-17")` works as usual.
 
-The class is a separate argument because TeaVM must know it while it compiles
-the call. An interface and one of its implementations work too:
+This suits a working collaborator you would rather keep than rebuild in stubs.
+An interface and one of its implementations work too:
 
 ```java
 Notifier notifier = spy(Notifier.class, new EmailNotifier());
 ```
 
-Two things are worth knowing before relying on a spy:
+Two things to know before relying on a spy:
 
-- the spy is not the object it delegates to, so `==` distinguishes them; and
-- a real method that calls another method on itself is not intercepted, because
-  `this` inside that method is the delegate. Stubbing `currency()` does not
-  change what `summary()` sees when `summary()` calls it.
+- the spy is a different object from the one it wraps, so `==` tells them
+  apart; and
+- if a real method calls another method on itself, that inner call is not
+  intercepted. Stubbing `currency()` does not change what `summary()` sees when
+  `summary()` calls it.
 
-The second point is the cost of delegation. Where it matters, mock the
-collaborator instead of spying on it.
+Where the second point matters, mock the collaborator instead of spying on it.
 
-## Arrange an answer before the call runs
+## Set up without calling the method
 
-`when(spy.currency())` has to evaluate `spy.currency()` to know which call is
-being described, which runs the real method once. When that method is slow,
-destructive, or unavailable in a browser, arrange the answer first:
+`when(spy.currency())` has to run `spy.currency()` to know which call you mean.
+On a spy that means the real method runs once during setup. When it is slow,
+destructive, or simply unavailable in a browser, arrange the answer first:
 
 ```java
 doReturn("EUR").when(pricingSpy).currency();
@@ -331,170 +306,76 @@ doAnswer(call -> call.argument(0) + "!").when(pricingSpy).describe(anyString());
 doNothing().when(pricingSpy).record("audited");
 ```
 
-The real method never runs. These work on mocks too, where they are simply an
-alternative spelling.
+The real method never runs. These work on plain mocks too, where they are just
+another way of writing `when`.
 
-## The timesheet example
+## Reuse and reset
 
-The example module tests a real `TimesheetService` while replacing its storage
-and approval boundaries. Its tests progress through exact stubbing, positive
-and negative verification, matchers, calculated answers, changing results, and
-failures.
-
-Start with
-[`TimesheetServiceTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetServiceTest.java),
-then
-[`TimesheetSpyTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetSpyTest.java)
-for class mocks and spies. The separate
-[example guide](mockatcha-examples/README.md) explains the order and how to run
-only that module.
-
-## How the mock is created
-
-`mock(SomeInterface.class)` is handled while TeaVM compiles the test. TeaVM
-visits the abstract methods of that interface and Mockatcha supplies an
-implementation for each one. The generated method records its arguments and
-asks the small Mockatcha runtime for a configured answer.
-
-A class cannot go through that path, because TeaVM's proxy generator supplies
-bodies only for methods it finds abstract, and a concrete class has none.
-Mockatcha therefore generates the whole subclass with the compiler's own ASM
-and submits it to TeaVM. The generated bodies are just as thin: pack the
-arguments, ask the runtime, then either call the real object or convert the
-answer. The reasoning behind that choice, and the seam that was tried first, is
-recorded in the [class mocking and spies design
-record](CLASS_MOCKING_AND_SPIES.md).
-
-Nothing generates bytecode in the browser. There is no Java agent, reflective
-class-path scan, CDI container, or DOM dependency. This is why Mockatcha can
-keep the Mockito-style test API while fitting TeaVM's ahead-of-time build.
-
-The class passed to `mock` or `spy` must be a compile-time constant, as it is in
-`mock(ProfileRepository.class)`.
-
-## Current coverage
-
-Mockatcha supports:
-
-- Java interfaces and ordinary classes;
-- delegation spies over either;
-- object, primitive, and `void` methods;
-- overloaded, inherited, protected, and generic bridge methods;
-- exact arguments and the initial matcher set;
-- returned values, calculated answers, exceptions, and consecutive answers;
-- `doReturn`, `doThrow`, `doAnswer`, and `doNothing` for arranging an answer
-  before the call runs;
-- `ArgumentCaptor`, for asserting on an argument a test could not predict;
-- verification with `times`, `never`, `atLeast`, `atLeastOnce`, `atMost`, and
-  `only`; and
-- call-history inspection, clearing, and reset.
-
-Static methods, constructors, final classes, final and private methods,
-package-private methods, `InOrder` verification, a single-argument `spy(T)`, and
-asynchronous verification are later work. Those features should be added only
-when they can preserve the same small, predictable TeaVM runtime. The
-[design record](CLASS_MOCKING_AND_SPIES.md) explains what each would require and
-which parts of Mockito are worth porting next.
-
-## Control the clock, and other Jasmine ideas
-
-Browser tests need one thing Mockito never had to provide: control over time.
-The [`oolong`](oolong/README.md) module adds a fake clock that intercepts
-`setTimeout`, `setInterval`, `requestAnimationFrame`, and `Date.now`, so polling
-and debouncing can be tested without sleeping:
+Most tests should create fresh mocks. When a fixture is deliberately shared:
 
 ```java
-clock().install();
-try {
-    component.startPolling();
-    clock().tick(1000);
-    verify(feed, times(4)).refresh();
-} finally {
-    clock().uninstall();
-}
+clearInvocations(mock);   // forget the calls, keep the stubs
+reset(mock);              // forget both
 ```
 
-Oolong also configures a method by name rather than by calling it, and reads a
-mock's call record as data. It works on the same objects as the Mockito-shaped
-API, in the same test.
+For a diagnostic, or an assertion the verification modes cannot express, read
+the record directly:
 
-## Choose modules
+```java
+List<Invocation> calls = mockingDetails(repository).getInvocations();
+```
 
-| Module | Use it for |
+Oolong offers a [more readable way](oolong/README.md#read-the-call-record) to do
+the same thing.
+
+## What it cannot do
+
+Mockatcha would rather be clear about its limits than fail confusingly.
+
+- **Static methods and constructors** cannot be mocked.
+- **Final classes** cannot be mocked, and **final and private methods** keep
+  their real behaviour.
+- **A mocked class must have a no-argument constructor**, which is run.
+- **The class passed to `mock` or `spy` must be written out in full** at the
+  call site: `mock(ProfileRepository.class)`, not `mock(someVariable)`.
+
+Unsupported cases are reported while the test compiles, naming the type and the
+rule it failed.
+
+Not yet supported, but possible: `InOrder` verification,
+`verifyNoMoreInteractions`, and annotation-driven mocks. The
+[design record](CLASS_MOCKING_AND_SPIES.md) has the full picture.
+
+## Modules
+
+| Module | What it is |
 | --- | --- |
-| `mockatcha-core` | The public mocking API, compile-time generator, and small runtime. |
-| `oolong` | A [Jasmine-shaped layer](oolong/README.md): configure by method name, read the call record, and drive a fake clock. Depends on TeaVM's JavaScript interop. |
-| `mockatcha-examples` | Build-checked examples for learning; applications do not depend on it. |
+| `mockatcha-core` | The library described above. |
+| `oolong` | A [second vocabulary](oolong/README.md): configure by method name, read the call record, control the clock. |
+| `mockatcha-examples` | Worked examples you can run. Applications do not depend on it. |
 
-Mockatcha has no Sarto, Verrai, CDI, Mockito, Byte Buddy, or browser DOM
-dependency. The only production dependency is TeaVM's metaprogramming API.
-Class mocking also uses TeaVM's introspection API and its relocated ASM while
-the compiler runs; both are already on the compiler's classpath, so neither is
-passed on to a consumer.
+Mockatcha has no dependency on Mockito, Byte Buddy, CDI, a browser DOM, Sarto,
+or Verrai.
 
-## Add Mockatcha to a TeaVM test suite
+## Examples
 
-Add the core library for tests, together with TeaVM's class library and JUnit
-runner:
+The examples module tests a real `TimesheetService` with mocked storage and
+approval boundaries. Read them in this order:
 
-```xml
-<properties>
-  <mockatcha.version>0.1.0-SNAPSHOT</mockatcha.version>
-  <teavm.version>0.15.0</teavm.version>
-</properties>
-
-<dependencies>
-  <dependency>
-    <groupId>io.instanto</groupId>
-    <artifactId>mockatcha-core</artifactId>
-    <version>${mockatcha.version}</version>
-    <scope>test</scope>
-  </dependency>
-  <dependency>
-    <groupId>org.teavm</groupId>
-    <artifactId>teavm-classlib</artifactId>
-    <version>${teavm.version}</version>
-    <scope>test</scope>
-  </dependency>
-  <dependency>
-    <groupId>org.teavm</groupId>
-    <artifactId>teavm-junit</artifactId>
-    <version>${teavm.version}</version>
-    <scope>test</scope>
-  </dependency>
-  <dependency>
-    <groupId>junit</groupId>
-    <artifactId>junit</artifactId>
-    <version>4.13.2</version>
-    <scope>test</scope>
-  </dependency>
-</dependencies>
-```
-
-Configure the TeaVM runner used by Maven Surefire:
-
-```xml
-<systemPropertyVariables>
-  <teavm.junit.target>${project.build.directory}/js-tests</teavm.junit.target>
-  <teavm.junit.js.runner>browser-chrome</teavm.junit.js.runner>
-</systemPropertyVariables>
-```
-
-The current repository version is a snapshot and must be installed locally
-until published artifacts are available.
+1. [`TimesheetServiceTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetServiceTest.java)
+   — stubbing, verification, matchers, answers, failures;
+2. [`TimesheetSpyTest`](mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetSpyTest.java)
+   — class mocks and spies.
 
 ## Build this repository
 
-Use Java 21, Maven, and a locally available Chrome or Chromium browser:
+Java 21, Maven, and a local Chrome or Chromium:
 
 ```bash
 mvn clean test
 ```
 
-The reactor compiles Mockatcha and runs both the core contract tests and the
-consumer examples in Chrome through TeaVM.
-
-To run only the examples and anything they require:
+To run only the examples and what they need:
 
 ```bash
 mvn -pl mockatcha-examples -am test

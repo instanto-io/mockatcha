@@ -11,10 +11,6 @@ import java.util.Objects;
 /**
  * A handle on one method of a mock or spy, addressed by name.
  *
- * <p>Mockatcha describes a call by evaluating it: {@code when(pricing.currency())}. Jasmine names
- * the method instead, which is the only way to describe a call a test is unwilling to run, and
- * which covers every overload at once.
- *
  * <p>Obtained from {@link Oolong#spyOn(Object, String)}.
  */
 public final class Spy {
@@ -68,7 +64,7 @@ public final class Spy {
     return arrange(List.of(Objects.requireNonNull(answer, "answer")));
   }
 
-  /** Answers matching calls with Java's empty value, and records them. */
+  /** Answers matching calls with Java's empty value. */
   public Spy andStub() {
     return arrange(List.of(invocation -> null));
   }
@@ -76,8 +72,7 @@ public final class Spy {
   /**
    * Removes any arranged behaviour for this method name.
    *
-   * <p>On a spy the real object answers again. On a mock the call returns Java's empty value, which
-   * is what an unstubbed mock does anyway.
+   * <p>On a spy the real object answers again; on a mock the call returns Java's empty value.
    */
   public Spy andCallThrough() {
     MockAccess.clearStubs(mock, methodName);

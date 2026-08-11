@@ -110,6 +110,26 @@ public class ClockTeaVmTest {
   }
 
   @Test
+  public void javaTimeApisFollowTheClockToo() {
+    clock().install().setTime(5_000_000L);
+
+    assertEquals(5_000_000L, System.currentTimeMillis());
+    assertEquals(5_000_000L, new java.util.Date().getTime());
+
+    clock().tick(1_000);
+
+    assertEquals(5_001_000L, System.currentTimeMillis());
+    assertEquals(5_001_000L, new java.util.Date().getTime());
+  }
+
+  @Test
+  public void anExplicitDateStillMeansWhatItSays() {
+    clock().install().setTime(5_000_000L);
+
+    assertEquals(1_234L, new java.util.Date(1_234L).getTime());
+  }
+
+  @Test
   public void countsWorkThatIsStillWaiting() {
     clock().install();
 

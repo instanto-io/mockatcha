@@ -3,14 +3,7 @@ package io.instanto.oolong;
 import io.instanto.mockatcha.Invocation;
 import java.util.List;
 
-/**
- * The calls recorded for a mock, or for one method of it.
- *
- * <p>Mockatcha's {@code verify} states an expectation and fails on the spot, which is the clearer
- * way to describe intended behaviour. This reads the record instead, which suits a diagnostic, an
- * assertion the built-in verification modes cannot express, or a test that wants to inspect
- * arguments it could not predict.
- */
+/** The calls recorded for a mock, or for one method of it. */
 public final class CallLog {
 
   private final List<Invocation> invocations;

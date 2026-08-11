@@ -25,16 +25,10 @@ import org.teavm.metaprogramming.MethodCaller;
 import org.teavm.metaprogramming.Value;
 
 /**
- * Jasmine's {@code objectContaining}, made to work without reflection.
+ * Matches an object by naming some of its properties and ignoring the rest.
  *
- * <p>Jasmine matches an object by naming some of its properties and ignoring the rest. That relies
- * on JavaScript being able to look up a property by name, which TeaVM does not allow: reflection is
- * stripped from the compiled program.
- *
- * <p>The metaprogramming API closes the gap. Because the type is named at the call site, TeaVM can
- * see its accessors and fields while it compiles the test, and generate a reader that turns a
- * property name into a direct call or field read. Nothing is looked up at runtime, and nothing is
- * retained in the compiled output beyond the accessors that are actually used.
+ * <p>The property reader is generated while TeaVM compiles the test, so nothing is looked up
+ * reflectively at runtime.
  *
  * <pre>{@code
  * verify(repository).save(objectContaining(Timesheet.class, "employeeId", "A-17"));
@@ -43,10 +37,9 @@ import org.teavm.metaprogramming.Value;
  *         Map.of("employeeId", "A-17", "hours", 38)));
  * }</pre>
  *
- * <p>The class must be a compile-time constant, the same rule that applies to {@code mock}. A
- * property may be a no-argument accessor — {@code hours()}, {@code getHours()}, or
- * {@code isActive()} — or a visible field. An unknown property name fails as soon as the matcher is
- * built, listing the names that do exist.
+ * <p>The class must be a compile-time constant. A property is a no-argument accessor —
+ * {@code hours()}, {@code getHours()}, or {@code isActive()} — or a visible field, declared or
+ * inherited. An unknown property name fails as soon as the matcher is built.
  */
 @CompileTime
 public final class ObjectMatchers {
@@ -62,7 +55,7 @@ public final class ObjectMatchers {
   public static native <T> T objectContaining(Class<T> type, Map<String, Object> properties);
 
   /**
-   * Builds a reader for a type, which is useful on its own for inspecting a captured argument.
+   * Builds a reader for a type, for inspecting a value directly.
    *
    * <pre>{@code
    * PropertyReader<Timesheet> reader = propertiesOf(Timesheet.class);
@@ -106,9 +99,6 @@ public final class ObjectMatchers {
   /**
    * Emits a reader whose {@code read} is a chain of name comparisons, each guarding one direct
    * accessor call or field read.
-   *
-   * <p>A chain rather than a lookup table because the whole point is that no table survives to
-   * runtime. Tests compare a handful of properties, so the cost is irrelevant.
    */
   @SuppressWarnings("rawtypes")
   private static <T> Value<PropertyReader<T>> generateReader(IntrospectClass<T> type) {
@@ -163,7 +153,7 @@ public final class ObjectMatchers {
 
   private static void emitRead(
       Map<String, Property> properties, Value<Object> target, Value<Object> property) {
-    // One slot, because a Value cannot be reassigned and the chain has to accumulate a result.
+    // A one-element array because a Value cannot be reassigned as the chain accumulates a result.
     Value<Object[]> found = emit(() -> new Object[] {PropertyMatching.UNKNOWN});
     properties.forEach(
         (name, source) -> {
@@ -199,13 +189,7 @@ public final class ObjectMatchers {
     exit(() -> array.get());
   }
 
-  /**
-   * Collects the readable properties of a type, accessors first.
-   *
-   * <p>An accessor wins over a field of the same name, because that is what calling code would use.
-   * Names follow the shapes Java writes them in: {@code hours()}, {@code getHours()}, and
-   * {@code isActive()} all describe a property.
-   */
+  /** Collects the readable properties of a type, an accessor winning over a field of the same name. */
   private static Map<String, Property> readablePropertiesOf(IntrospectClass<?> type) {
     Map<String, Property> properties = new LinkedHashMap<>();
     for (IntrospectMethod method : type.methods()) {

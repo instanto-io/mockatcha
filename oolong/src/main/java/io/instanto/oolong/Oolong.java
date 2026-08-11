@@ -6,19 +6,7 @@ import java.util.Objects;
 /**
  * A Jasmine-shaped vocabulary for tests built on Mockatcha.
  *
- * <p>Mockatcha keeps Mockito's shape, which most Java developers already read fluently. Jasmine
- * solves a few problems Mockito does not have to: it names the method being configured instead of
- * calling it, it reads a spy's call record fluently, and it takes control of the clock. Those three
- * ideas are worth having in a browser test, so they live here rather than being bolted onto the
- * Mockito-shaped API.
- *
- * <p>The two vocabularies work on the same objects. A mock created with {@code Mockatcha.mock} can
- * be configured with {@code spyOn}, verified with {@code Mockatcha.verify}, and inspected with
- * {@code calls} in the same test.
- *
- * <p>One thing did not survive the port. Jasmine's {@code spyOn(object, 'method')} replaces a
- * method on an object that already exists, which JavaScript allows and TeaVM does not. Here the
- * object must already be a Mockatcha mock or spy, and {@code spyOn} arranges its behaviour by name.
+ * <p>Works on the same objects as {@code Mockatcha}, in the same test.
  */
 public final class Oolong {
 
@@ -29,7 +17,8 @@ public final class Oolong {
   /**
    * Arranges and inspects one method of a mock or spy, chosen by name.
    *
-   * <p>Every overload of that name is covered unless {@link Spy#withArgs} narrows it.
+   * <p>Covers every overload of that name unless {@link Spy#withArgs} narrows it. The object must
+   * already be a Mockatcha mock or spy.
    *
    * <pre>{@code
    * PricingService pricing = spy(PricingService.class, real);
@@ -55,12 +44,7 @@ public final class Oolong {
     return new CallLog(MockAccess.invocations(mock, methodName), methodName);
   }
 
-  /**
-   * The fake clock, which does nothing until it is installed.
-   *
-   * <p>There is one clock per test run, because the browser has one set of timer functions to
-   * replace.
-   */
+  /** The fake clock, which does nothing until it is installed. There is one per test run. */
   public static Clock clock() {
     return CLOCK;
   }

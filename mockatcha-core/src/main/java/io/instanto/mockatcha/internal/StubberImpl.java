@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Collects {@code doReturn}-style answers until the call they describe is made. */
+/** Collects answers until the call they describe is made. */
 public final class StubberImpl implements Stubber {
 
   private final List<Answer<?>> answers = new ArrayList<>();

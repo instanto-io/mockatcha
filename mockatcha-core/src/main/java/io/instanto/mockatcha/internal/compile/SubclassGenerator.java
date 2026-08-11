@@ -21,26 +21,9 @@ import org.teavm.extension.introspect.IntrospectParameter;
 import org.teavm.metaprogramming.MetaprogrammingEnvironment;
 
 /**
- * Generates the subclass that lets Mockatcha mock or spy on an ordinary Java class.
+ * Generates the subclass used to mock or spy on an ordinary Java class.
  *
- * <h2>Why a subclass is generated rather than proxied</h2>
- *
- * <p>TeaVM's {@code proxy} operation can make a generated class extend a class rather than
- * implement an interface, but it supplies bodies only for methods it finds abstract. A concrete
- * class therefore yields a proxy that inherits every real method and intercepts nothing.
- *
- * <p>The obvious repair — generating an abstract shim subclass that redeclares each method as
- * abstract, then proxying that — does not work on TeaVM 0.15. {@code proxy} resolves its argument
- * through the compiler's <em>unprocessed</em> class source, while a class submitted through
- * {@code createClass} is only visible in the processed one, so the shim is invisible to the very
- * operation that would consume it.
- *
- * <p>So this generator emits the whole subclass, including method bodies, and the metaprogram
- * instantiates it through {@code Metaprogramming.caller(constructor).construct(...)}. Bodies are
- * deliberately thin: each one packs its arguments, asks {@link MockRuntime} what to do, and either
- * calls the real object or converts the runtime's answer. Every decision stays in ordinary Java.
- *
- * <p>Everything in this class runs inside the TeaVM compiler. None of it reaches the browser.
+ * <p>Runs inside the TeaVM compiler; none of it reaches the browser.
  */
 public final class SubclassGenerator {
 
@@ -50,7 +33,7 @@ public final class SubclassGenerator {
   private static final String STATE_FIELD = "mockatchaState";
   private static final String DELEGATE_FIELD = "mockatchaDelegate";
 
-  /** Object methods are handled deliberately rather than by discovery, so they never appear here. */
+  /** Answered directly by the generated subclass, so never treated as overridable methods. */
   private static final Set<String> OBJECT_METHODS =
       Set.of(
           "equals(Ljava/lang/Object;)Z",
@@ -70,7 +53,7 @@ public final class SubclassGenerator {
 
   private SubclassGenerator() {}
 
-  /** A generated subclass and the constructor a metaprogram calls to instantiate it. */
+  /** A generated subclass and the constructor used to instantiate it. */
   public static final class GeneratedSubclass {
     private final IntrospectClass<?> type;
     private final IntrospectMethod constructor;
@@ -84,18 +67,13 @@ public final class SubclassGenerator {
       return type;
     }
 
-    /** Takes the runtime state and the real object a spy delegates to, which is null for a mock. */
+    /** Takes the runtime state and the delegate, which is null for a mock. */
     public IntrospectMethod constructor() {
       return constructor;
     }
   }
 
-  /**
-   * Explains why a type cannot be mocked as a class, or returns null when it can.
-   *
-   * <p>The caller reports this while TeaVM compiles the test. A compile-time failure is more useful
-   * than a partly working object in the browser.
-   */
+  /** Explains why a type cannot be mocked as a class, or returns null when it can. */
   public static String rejectionReason(IntrospectClass<?> type) {
     String name = type.name();
     if (type.isPrimitive() || type.isArray()) {
@@ -134,9 +112,7 @@ public final class SubclassGenerator {
   /**
    * Returns the subclass for a mocked type, generating it once per TeaVM compilation.
    *
-   * <p>The name is derived from the mocked type so that an incremental build reuses the same class
-   * graph. One generated class serves both mocks and spies; each instance still receives its own
-   * runtime state, and a mock is simply an instance whose delegate is null.
+   * <p>One generated class serves both mocks and spies; a mock is an instance with a null delegate.
    */
   public static GeneratedSubclass subclassOf(
       MetaprogrammingEnvironment environment, IntrospectClass<?> type) {
@@ -150,9 +126,9 @@ public final class SubclassGenerator {
     String target = type.name().replace('.', '/');
     String generated = target + "$Mockatcha";
 
+    // Version 49 so that branches need no stack map frames, which would mean loading the mocked
+    // class's whole hierarchy inside the compiler to compute them.
     ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-    // Java 5 bytecode keeps the generated methods free of stack map frames, which would otherwise
-    // have to be computed for every branch by loading the mocked class's whole hierarchy.
     writer.visit(
         Opcodes.V1_5,
         Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SUPER,
@@ -204,9 +180,7 @@ public final class SubclassGenerator {
   }
 
   /**
-   * Emits one overriding method.
-   *
-   * <p>In Java the body reads:
+   * Emits one overriding method, whose body reads:
    *
    * <pre>{@code
    * Object result = MockRuntime.dispatchSpy(mockatchaState, "total(java.lang.String)",
@@ -311,11 +285,9 @@ public final class SubclassGenerator {
   }
 
   /**
-   * Emits {@code equals}, {@code hashCode}, and {@code toString}.
+   * Emits identity-based {@code equals} and {@code hashCode}, and a fixed {@code toString}.
    *
-   * <p>These are answered directly rather than routed through the runtime, so state lookup stays
-   * keyed on identity and a logged mock never runs the mocked class's own code against an object
-   * whose fields a test never arranged. A class that makes one of them final keeps its own.
+   * <p>A class that makes one of them final keeps its own.
    */
   private static void writeObjectMethods(
       ClassWriter writer, String generated, IntrospectClass<?> type) {
@@ -361,11 +333,10 @@ public final class SubclassGenerator {
   }
 
   /**
-   * Collects the methods a generated subclass may legally override.
+   * Collects the public and protected instance methods a subclass may override.
    *
-   * <p>Static, private, and final methods cannot be overridden. Package-private methods wait until
-   * generated-package placement has explicit tests. A bridge method is left in place so the real
-   * bridge forwards to the override, which keeps one stub per source-level method.
+   * <p>A bridge method is skipped: the inherited bridge calls the override virtually, so one stub
+   * still covers one source-level method.
    */
   static List<IntrospectMethod> overridableMethods(IntrospectClass<?> type) {
     Map<String, IntrospectMethod> chosen = new LinkedHashMap<>();
@@ -395,10 +366,7 @@ public final class SubclassGenerator {
     return new ArrayList<>(chosen.values());
   }
 
-  /**
-   * Reports whether {@code candidate} is the more specific of two same-signature methods, which
-   * makes {@code previous} the compiler-generated bridge.
-   */
+  /** Reports whether {@code previous} is the bridge for the more specific {@code candidate}. */
   private static boolean isBridgeOf(IntrospectMethod previous, IntrospectMethod candidate) {
     IntrospectClass<?> previousReturn = previous.returnType();
     IntrospectClass<?> candidateReturn = candidate.returnType();

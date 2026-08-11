@@ -41,7 +41,7 @@ public final class MockState {
     return Collections.unmodifiableList(new ArrayList<>(invocations));
   }
 
-  /** How many calls were recorded on this mock, whatever they were. */
+  /** How many calls were recorded on this mock. */
   int invocationCount() {
     return invocations.size();
   }
@@ -73,7 +73,7 @@ public final class MockState {
     return null;
   }
 
-  /** Drops every stub that can answer a call of this method name, whatever its arguments. */
+  /** Drops every stub arranged for this method name. */
   void removeStubs(String methodName) {
     stubs.removeIf(stub -> stub.pattern().methodName().equals(methodName));
   }

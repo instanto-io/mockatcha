@@ -2,12 +2,7 @@ package io.instanto.mockatcha;
 
 import java.util.Objects;
 
-/**
- * What a {@link VerificationMode} is told about the call it is checking.
- *
- * <p>Most modes only need the matching count. {@code only()} also needs to know whether anything
- * else was called on the mock, which is why this exists rather than a bare integer.
- */
+/** What a {@link VerificationMode} is told about the call it is checking. */
 public final class VerificationContext {
 
   private final int matchingCount;
@@ -30,7 +25,7 @@ public final class VerificationContext {
     return totalCount;
   }
 
-  /** The call being verified, as it should appear in a failure message. */
+  /** The call being verified, as it appears in a failure message. */
   public String description() {
     return description;
   }

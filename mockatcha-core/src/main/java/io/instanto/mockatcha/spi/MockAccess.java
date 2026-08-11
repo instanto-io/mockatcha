@@ -7,14 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The seam a library layered on Mockatcha uses to reach a mock's runtime state.
+ * Lets a library layered on Mockatcha arrange behaviour and read call history by method name.
  *
- * <p>Tests should not need this. It exists so that an alternative test vocabulary — Oolong is the
- * one in this repository — can arrange behaviour and read call history without depending on
- * Mockatcha's internal packages.
- *
- * <p>Everything here addresses a method by name. The everyday API addresses a method by calling it,
- * which is more precise but cannot describe a call the test is unwilling to evaluate.
+ * <p>Tests should not need this; use {@code Mockatcha} instead.
  */
 public final class MockAccess {
 
@@ -28,8 +23,8 @@ public final class MockAccess {
   /**
    * Arranges answers for every overload of a method name.
    *
-   * <p>Null arguments match every call of that name; an array matches calls whose arguments are
-   * equal to it. Answers are consumed in order, and the last one repeats.
+   * <p>Null arguments match every call of that name. Answers are consumed in order, the last
+   * repeating.
    */
   public static void arrange(
       Object mock, String methodName, Object[] arguments, List<Answer<?>> answers) {
