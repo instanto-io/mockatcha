@@ -86,25 +86,85 @@ public final class Mockatcha {
     return mock;
   }
 
+  /** Expects exactly this many matching calls. */
   public static VerificationMode times(int expectedCount) {
-    if (expectedCount < 0) {
-      throw new IllegalArgumentException("expectedCount must not be negative");
-    }
+    requireNotNegative(expectedCount);
     return (actualCount, invocation) -> {
       if (actualCount != expectedCount) {
         throw new AssertionError(
-            "Wanted "
-                + expectedCount
-                + " invocation(s) of "
-                + invocation
-                + " but observed "
+            "Wanted " + expectedCount + " invocation(s) of " + invocation + " but observed "
                 + actualCount);
       }
     };
   }
 
+  /** Expects no matching call. */
   public static VerificationMode never() {
     return times(0);
+  }
+
+  /** Expects at least this many matching calls, and does not care how many more. */
+  public static VerificationMode atLeast(int minimumCount) {
+    requireNotNegative(minimumCount);
+    return (actualCount, invocation) -> {
+      if (actualCount < minimumCount) {
+        throw new AssertionError(
+            "Wanted at least " + minimumCount + " invocation(s) of " + invocation
+                + " but observed " + actualCount);
+      }
+    };
+  }
+
+  /** Expects the call to have happened, without fixing how often. */
+  public static VerificationMode atLeastOnce() {
+    return atLeast(1);
+  }
+
+  /** Expects no more than this many matching calls, including none at all. */
+  public static VerificationMode atMost(int maximumCount) {
+    requireNotNegative(maximumCount);
+    return (actualCount, invocation) -> {
+      if (actualCount > maximumCount) {
+        throw new AssertionError(
+            "Wanted at most " + maximumCount + " invocation(s) of " + invocation
+                + " but observed " + actualCount);
+      }
+    };
+  }
+
+  /**
+   * Expects this call once, and nothing else on the same mock.
+   *
+   * <p>Useful where the absence of other calls is the point, such as a cache that must not reach
+   * its backing store a second time.
+   */
+  public static VerificationMode only() {
+    return new VerificationMode() {
+      @Override
+      public void verify(int actualCount, String invocationDescription) {
+        verify(new VerificationContext(actualCount, actualCount, invocationDescription));
+      }
+
+      @Override
+      public void verify(VerificationContext context) {
+        if (context.matchingCount() != 1) {
+          throw new AssertionError(
+              "Wanted 1 invocation(s) of " + context.description() + " but observed "
+                  + context.matchingCount());
+        }
+        if (context.totalCount() != 1) {
+          throw new AssertionError(
+              "Wanted " + context.description() + " to be the only call on this mock, but "
+                  + (context.totalCount() - 1) + " other call(s) were recorded");
+        }
+      }
+    };
+  }
+
+  private static void requireNotNegative(int count) {
+    if (count < 0) {
+      throw new IllegalArgumentException("An invocation count must not be negative: " + count);
+    }
   }
 
   public static MockingDetails mockingDetails(Object mock) {

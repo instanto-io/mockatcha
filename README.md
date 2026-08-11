@@ -57,7 +57,7 @@ ordinary Java, and the test runs in a real browser through TeaVM's test runner.
 | Understand it | [Why it exists](#why-mockatcha-exists) · [Principles](#principles) · [Three core ideas](#the-three-core-ideas) |
 | Start using it | [First browser test](#your-first-browser-test) |
 | Describe behaviour | [Return values](#choose-what-a-mock-returns) · [Flexible arguments](#match-flexible-arguments) · [Answers and failures](#calculate-an-answer-or-report-a-failure) · [Changing results](#return-different-results-over-time) |
-| Check behaviour | [Verify calls](#verify-important-calls) · [Call history](#inspect-or-clear-call-history) |
+| Check behaviour | [Verify calls](#verify-important-calls) · [Capture arguments](#capture-an-argument-the-test-could-not-predict) · [Call history](#inspect-or-clear-call-history) |
 | Keep real behaviour | [Mock a class](#mock-an-ordinary-class) · [Spy on an object](#keep-real-behaviour-with-a-spy) · [Arrange before calling](#arrange-an-answer-before-the-call-runs) |
 | See it in context | [Timesheet example](#the-timesheet-example) · [How generation works](#how-the-mock-is-created) |
 | Reference | [Current coverage](#current-coverage) · [Modules](#choose-modules) · [Maven setup](#add-mockatcha-to-a-teavm-test-suite) · [Build](#build-this-repository) |
@@ -145,8 +145,9 @@ Sometimes a test cares about the kind of argument rather than one exact value:
 when(profiles.find(anyString())).thenReturn(defaultProfile);
 ```
 
-The first milestone includes `any()`, `anyString()`, `anyInt()`, and `eq(...)`.
-If one argument uses a matcher, every argument in that call must use one:
+`any()`, `eq(...)`, `isNull()`, `isNotNull()`, a matcher for each primitive
+type, and `argThat(...)` for a condition of your own are available. If one
+argument uses a matcher, every argument in that call must use one:
 
 ```java
 when(calculator.total(anyInt(), eq("EUR"))).thenReturn(42);
@@ -210,8 +211,35 @@ Use `never` for an effect that must not happen:
 verify(notifications, never()).send(anyString());
 ```
 
+When the exact count is not the point, `atLeastOnce()`, `atLeast(n)`, and
+`atMost(n)` say so. `only()` expects the call once and nothing else on that
+mock, which is how to state that a cache did not reach its backing store a
+second time:
+
+```java
+verify(store, only()).load("A-17");
+```
+
 Matchers work in verification just as they do in stubbing. Verification calls
 are not added to the call history.
+
+## Capture an argument the test could not predict
+
+Matchers answer "was it called with something like this". When the argument is
+built inside the code under test, the question is "what was it called with", and
+a captor answers that:
+
+```java
+ArgumentCaptor<Timesheet> saved = ArgumentCaptor.forClass(Timesheet.class);
+
+verify(repository).save(saved.capture());
+
+assertEquals("A-17", saved.getValue().employeeId());
+```
+
+`capture()` is a matcher, so the same all-or-nothing rule applies to the other
+arguments of that call. `getAllValues()` returns every captured argument when
+the call happened more than once, and `getValue()` returns the most recent.
 
 ## Inspect or clear call history
 
@@ -356,11 +384,13 @@ Mockatcha supports:
 - returned values, calculated answers, exceptions, and consecutive answers;
 - `doReturn`, `doThrow`, `doAnswer`, and `doNothing` for arranging an answer
   before the call runs;
-- verification with exact counts and `never`; and
+- `ArgumentCaptor`, for asserting on an argument a test could not predict;
+- verification with `times`, `never`, `atLeast`, `atLeastOnce`, `atMost`, and
+  `only`; and
 - call-history inspection, clearing, and reset.
 
 Static methods, constructors, final classes, final and private methods,
-package-private methods, argument captors, a single-argument `spy(T)`, and
+package-private methods, `InOrder` verification, a single-argument `spy(T)`, and
 asynchronous verification are later work. Those features should be added only
 when they can preserve the same small, predictable TeaVM runtime. The
 [design record](CLASS_MOCKING_AND_SPIES.md) explains what each would require and

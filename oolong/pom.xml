@@ -25,6 +25,16 @@
       <groupId>org.teavm</groupId>
       <artifactId>teavm-jso</artifactId>
     </dependency>
+    <!-- objectContaining generates a property reader while TeaVM compiles the test. -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-metaprogramming-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-extension-apis</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>

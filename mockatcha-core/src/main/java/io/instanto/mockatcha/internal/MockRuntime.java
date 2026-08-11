@@ -4,6 +4,7 @@ import io.instanto.mockatcha.Answer;
 import io.instanto.mockatcha.ArgumentMatcher;
 import io.instanto.mockatcha.Invocation;
 import io.instanto.mockatcha.OngoingStubbing;
+import io.instanto.mockatcha.VerificationContext;
 import io.instanto.mockatcha.VerificationMode;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -234,7 +235,9 @@ public final class MockRuntime {
     if (request.state != state) {
       throw new IllegalStateException("verify() must be followed by a call on the same mock");
     }
-    request.mode.verify(state.count(pattern), pattern.toString());
+    request.mode.verify(
+        new VerificationContext(
+            state.count(pattern), state.invocationCount(), pattern.toString()));
   }
 
   private static InvocationPattern consumePattern(String method, Object[] arguments) {

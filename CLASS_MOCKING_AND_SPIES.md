@@ -17,9 +17,10 @@ delivery sequence it described has been completed.
 | Delegation spies over classes and interfaces | Done |
 | `doReturn` / `doThrow` / `doAnswer` / `doNothing` | Done |
 | Matchers: `any`, every primitive, `eq`, `isNull`, `isNotNull`, `argThat` | Done |
-| Verification: `times`, `never` | Done |
+| `ArgumentCaptor` | Done |
+| Verification: `times`, `never`, `atLeast`, `atLeastOnce`, `atMost`, `only` | Done |
 | Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
-| Jasmine-shaped layer: name-based configuration, call inspection, fake clock, shape matchers | Done, in the `oolong` module |
+| Jasmine-shaped layer: name-based configuration, call inspection, fake clock, shape matchers, `objectContaining` | Done, in the `oolong` module |
 | Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
 
 The four milestones the original handoff set out — prove subclass generation,
@@ -239,6 +240,7 @@ Every supported behaviour runs through `TeaVMTestRunner` in Chrome.
 | Subclass generation on its own | `SubclassGenerationTeaVmTest` |
 | Class shape, results, dispatch, methods, isolation | `MockatchaClassTeaVmTest` |
 | Spies, arranged answers, delegation limits | `MockatchaSpyTeaVmTest` |
+| Captors and verification modes | `CaptorAndVerificationModesTeaVmTest` |
 | Interface mocking, unchanged | `MockatchaTeaVmTest` |
 | Consumer-facing examples | `mockatcha-examples` |
 
@@ -249,7 +251,8 @@ green browser test source set, so the compile failure itself is checked by hand;
 a Maven Invoker module would be needed to automate it.
 
 The Jasmine-shaped layer has its own tests in the `oolong` module:
-`OolongSpyTeaVmTest`, `ClockTeaVmTest`, and `OolongMatchersTeaVmTest`.
+`OolongSpyTeaVmTest`, `ClockTeaVmTest`, `OolongMatchersTeaVmTest`, and
+`ObjectMatchersTeaVmTest`.
 
 ## What to port from Mockito next
 
@@ -265,8 +268,6 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | Notes |
 | --- | --- |
-| `atLeast(n)`, `atMost(n)`, `atLeastOnce()`, `only()` | More `VerificationMode` implementations beside `times` and `never`. An afternoon, and it removes the most common reason to fall back on reading call history. |
-| `ArgumentCaptor` | A matcher that records what it matched, then `getValue()` and `getAllValues()`. Fits the existing matcher machinery exactly, and is the highest-value item here: inspecting an argument a test could not predict currently means reading `mockingDetails` by hand. |
 | `verifyNoInteractions`, `verifyNoMoreInteractions` | Needs an "already verified" flag on `Invocation` and a pass over the recorded list. |
 | `AdditionalMatchers`: `and`, `or`, `not`, `gt`, `lt`, `geq`, `leq`, `aryEq` | Thin wrappers over `argThat`. Cheap, and they compose with the matchers Oolong already added. |
 | `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf` | A handful of `Answer` implementations. `delegatesTo` is already covered by `spy(Class, T)` on an interface. |
@@ -288,6 +289,7 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | Why, and whether it is reachable |
 | --- | --- |
+| Reflective property access | Not reachable in general, but reachable when the type is named at the call site. Oolong's `objectContaining` generates a reader whose `read` is a chain of name comparisons guarding direct accessor calls, using `Metaprogramming.caller` and `accessor`. The same trick would serve any feature that needs to look at an argument's insides, including better failure messages. |
 | `@Mock`, `@Captor`, `@InjectMocks` | `MockitoAnnotations.openMocks(this)` reads the test class reflectively, and TeaVM strips reflection. A metaprogram can enumerate the fields of a class known at compile time, so `openMocks(MyTest.class, this)` is reachable while `openMocks(this)` is not. `@InjectMocks` additionally has to choose a constructor, which is more guesswork than it is worth. |
 | `mockStatic`, `mockConstruction` | On the JVM these need an agent. In TeaVM a `ClassHolderTransformer` plugin could rewrite `invokestatic` and `new` at the call sites reachable from a test, which is genuinely more tractable than the JVM equivalent. It is also invasive, affects the whole compiled program, and is a project of its own rather than a feature. |
 | Final classes, and final or private methods | A subclass cannot override them and TeaVM offers no inline redefinition, so the only route is the same call-site rewriting. |
@@ -298,9 +300,24 @@ None of these need the generator to change. They are new behaviour in
 
 ### A reasonable next tranche
 
-`ArgumentCaptor`, the missing verification modes, `verifyNoMoreInteractions`,
-and `AdditionalMatchers` together need no generator changes and close most of
-the gap a test written against Mockito would notice.
+`verifyNoMoreInteractions` and `AdditionalMatchers` need no generator changes
+and are what remains of the easy gap. `InOrder` is the first item that needs a
+decision rather than only code.
+
+`ArgumentCaptor` and the verification modes were the first tranche and are
+done. Two things learned while building them are worth keeping in mind for the
+rest:
+
+- **`capture()` has to return a usable value.** It stands in for an argument, so
+  for a primitive parameter it must return something that unboxes rather than
+  the null every other matcher returns. `ArgumentCaptor.forClass(int.class)`
+  exists for that reason, and any future matcher standing in for a primitive
+  needs the same treatment.
+- **A mode that needs more than a count needs more than an int.** `only()` has
+  to know whether anything else was called, which is why `VerificationMode`
+  gained a `VerificationContext` overload with a default implementation. Modes
+  that only count are still lambdas; `InOrder` will want the same seam widened
+  again, to carry a global call sequence.
 
 ## Explicitly deferred work
 

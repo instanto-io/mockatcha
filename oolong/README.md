@@ -26,7 +26,7 @@ verify(pricing).currency();
 | Configure by name | [spyOn](#configure-a-method-by-name) |
 | Read the record | [Call inspection](#read-the-call-record) |
 | Control time | [Fake clock](#take-control-of-the-clock) |
-| Describe arguments | [Matchers](#describe-the-shape-of-an-argument) |
+| Describe arguments | [Matchers](#describe-the-shape-of-an-argument) · [Object properties](#match-an-object-by-naming-its-properties) |
 | Reference | [What did not port](#what-did-not-port) · [Setup](#add-oolong-to-a-teavm-test-suite) |
 
 ## Configure a method by name
@@ -141,12 +141,41 @@ are available. Mockatcha itself supplies `any`, `anyString`, `anyInt`,
 `anyLong`, `anyDouble`, the rest of the primitive matchers, `eq`, `isNull`,
 `isNotNull`, and `argThat`.
 
-## What did not port
+### Match an object by naming its properties
 
-**`jasmine.objectContaining`** inspects arbitrary properties of a JavaScript
-object. Java has no portable equivalent — TeaVM strips reflection unless a type
-opts in — so `mapContaining` covers the case where the value really is a map,
-and `argThat` covers the rest with an ordinary Java condition.
+Jasmine's `objectContaining` names a few properties of an object and ignores the
+rest. That relies on looking a property up by name, which TeaVM does not allow:
+reflection is stripped from the compiled program.
+
+Naming the type restores it. TeaVM can see that type's accessors and fields
+while it compiles the test, so `objectContaining` generates a reader that turns a
+property name into a direct call or field read:
+
+```java
+verify(repository).save(objectContaining(Timesheet.class, "employeeId", "A-17"));
+
+verify(repository).save(objectContaining(Timesheet.class,
+        Map.of("employeeId", "A-17", "hours", 38)));
+```
+
+Nothing is looked up at runtime, and nothing survives into the compiled output
+beyond the accessors actually used. A property is a no-argument accessor —
+`hours()`, `getHours()`, or `isApproved()` — or a visible field, declared or
+inherited. Private members are not properties.
+
+The class must be a compile-time constant, the same rule that applies to `mock`.
+A misspelled property fails as soon as the matcher is built, listing the names
+that do exist, rather than quietly matching nothing.
+
+The generated reader is also available on its own, which suits asserting on a
+captured argument:
+
+```java
+PropertyReader<Timesheet> reader = propertiesOf(Timesheet.class);
+assertEquals("A-17", reader.read(saved.getValue(), "employeeId"));
+```
+
+## What did not port
 
 **`expect(spy).toHaveBeenCalledWith(...)`** is deliberately absent. It would
 compete with JUnit's assertions and Mockatcha's `verify` without adding

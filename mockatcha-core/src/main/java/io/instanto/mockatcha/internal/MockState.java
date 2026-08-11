@@ -41,6 +41,11 @@ public final class MockState {
     return Collections.unmodifiableList(new ArrayList<>(invocations));
   }
 
+  /** How many calls were recorded on this mock, whatever they were. */
+  int invocationCount() {
+    return invocations.size();
+  }
+
   int count(InvocationPattern pattern) {
     int count = 0;
     for (var invocation : invocations) {
