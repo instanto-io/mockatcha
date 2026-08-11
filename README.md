@@ -94,17 +94,6 @@ There is no JVM version of that test to write:
 creates the canvas through `HTMLDocument`, draws through
 `CanvasRenderingContext2D`, and counts painted pixels with `getImageData`.
 
-### Testkits
-
-A library publishing a testkit for its own users meets the same split. Doubles
-written by hand are portable and belong in the testkit itself. Doubles built by
-a mocking library are not, so they belong beside it: a `-jvm` artifact holding
-the Mockito ones and a `-teavm` artifact holding the Mockatcha ones. Consumers
-take the portable artifact plus whichever half matches where their tests run.
-
-Keeping them together instead pins the whole testkit to one platform. A single
-Mockito import is enough to stop a browser test from compiling.
-
 ## Setup
 
 Add Mockatcha to your test dependencies:
