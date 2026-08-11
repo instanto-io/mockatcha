@@ -24,6 +24,7 @@
     <module>mockatcha-core</module>
     <module>oolong</module>
     <module>mockatcha-examples</module>
+    <module>teavm-rule-support</module>
   </modules>
 
   <dependencyManagement>
@@ -46,6 +47,11 @@
       <dependency>
         <groupId>org.teavm</groupId>
         <artifactId>teavm-jso</artifactId>
+        <version>${teavm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-core</artifactId>
         <version>${teavm.version}</version>
       </dependency>
       <dependency>

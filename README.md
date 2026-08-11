@@ -496,7 +496,8 @@ public class PricingTest extends StrictTest {
 ```
 
 A base class rather than a JUnit rule because TeaVM's test runner collects
-`@Before` and `@After` from superclasses, and does not run rules.
+`@Before` and `@After` from superclasses, and runs rules only with the
+[patch in this repository](teavm-rule-support/README.md).
 
 Where a stub is deliberately broad — shared setup that only some tests use —
 `lenient()` exempts it:
@@ -546,6 +547,7 @@ The [design record](CLASS_MOCKING_AND_SPIES.md) covers what is planned next.
 | `mockatcha-core` | The library described above. Its one dependency is TeaVM's metaprogramming API. |
 | `oolong` | A [second vocabulary](oolong/README.md): configure by method name, read the call record, control the clock. |
 | `mockatcha-examples` | Worked examples you can run. |
+| `teavm-rule-support` | A [fix for TeaVM's test runner](teavm-rule-support/README.md) so `@Rule` works, with the patch for upstream. Separate from Mockatcha. |
 
 ## Examples
 
