@@ -73,21 +73,50 @@ is what every existing test compiles to.
 **3. `TConcurrentLinkedQueue` is added to the classlib.** This one is not really
 about rules, and may be worth taking on its own merits.
 
-`org.junit.runner.Description` holds its children in a `ConcurrentLinkedQueue`.
-With no emulation the real JDK class was compiled, and its static initialiser
-reaches `MethodHandles.lookup()`:
+`TestRule.apply(Statement, Description)` takes a `Description` — JUnit's
+description of the test being run — so calling a rule means constructing one.
+`org.junit.runner.Description` holds its children in a `ConcurrentLinkedQueue`,
+as a field initialiser, so every constructor reaches it:
+
+```java
+private final Collection<Description> fChildren = new ConcurrentLinkedQueue<Description>();
+```
+
+With no emulation for that class, the real JDK one is compiled, and its static
+initialiser sets up `VarHandle`s:
 
 ```
 Method java.lang.invoke.MethodHandles.lookup()Ljava/lang/invoke/MethodHandles$Lookup; was not found
     at java.util.concurrent.ConcurrentLinkedQueue.<clinit>(ConcurrentLinkedQueue.java:1064)
     at org.junit.runner.Description.<init>(Description.java:155)
     at org.junit.runner.Description.createTestDescription(Description.java:73)
+    at org.teavm.junit.TestEntryPoint.describe
 ```
 
-Any code constructing a `Description` hits this today, rule support or not. The
-class added here is a queue backed by an `ArrayDeque`, which is all a
-single-threaded runtime needs, and sits alongside the existing
-`TConcurrentHashMap` and `TCopyOnWriteArrayList`.
+So the reachable surface is wider than JUnit: any code that constructs a
+`Description`, and any code using `ConcurrentLinkedQueue` at all, fails the same
+way today. It is one of the JDK classes whose static initialiser reaches for
+method handles, which is a class of problem worth closing off one entry at a
+time.
+
+The implementation is a queue backed by an `ArrayDeque`, which is all a
+single-threaded runtime needs, sitting alongside the existing
+`TConcurrentHashMap` and `TCopyOnWriteArrayList`. It keeps the null rejection
+`ConcurrentLinkedQueue` specifies, and inherits the rest of the API from
+`AbstractQueue` and `AbstractCollection`.
+
+One style question for you. The neighbouring emulations extend the `T`-prefixed
+classlib types — `TConcurrentHashMap extends TAbstractMap` — while this one
+extends `java.util.AbstractQueue`, which the renamer maps to `TAbstractQueue`
+anyway. `TCopyOnWriteArrayList` already mixes the two, importing
+`java.util.Collection` and `java.util.List`, but nothing in the classlib
+currently *extends* a plain `java.util` type, so this would be the first.
+
+I wrote it this way because the `T` types are not on the published
+`teavm-classlib` jar's classpath, and that jar is what I had to compile against
+to test the change outside your build. Say the word and I will switch it to
+`TAbstractQueue`/`TArrayDeque`/`TQueue`, which is the version I would expect you
+to prefer.
 
 ## Ordering
 
@@ -123,5 +152,18 @@ they shadow the published ones, and ran it in Chrome through
 `TeaVMTestRunner`. That covers the generated code and the classlib addition
 under a real browser, but not `checkstyleMain` or the wider suite, so those are
 worth a look before merging.
+
+## In the meantime
+
+If this needs time, or lands in a later release, the change works as a small jar
+that a project puts on its test classpath ahead of `teavm-junit`, where its
+copies of `TestEntryPoint` and `TestEntryPointTransformer` shadow the published
+ones. `TConcurrentLinkedQueue` needs no shadowing, since it fills a gap rather
+than replacing anything.
+
+I am happy to publish that jar so people who need rules today are not blocked,
+and to point it at whatever you decide here so the two do not drift. It is
+plainly a stopgap — classpath ordering is a poor thing to depend on — and I
+would rather it became unnecessary.
 
 Happy to adjust the approach, the naming, or the scope.

@@ -23,13 +23,15 @@ import java.util.Iterator;
 import java.util.Queue;
 
 public class TConcurrentLinkedQueue<E> extends AbstractQueue<E> implements Queue<E>, Serializable {
-    private final ArrayDeque<E> items = new ArrayDeque<>();
+    private final ArrayDeque<E> elements = new ArrayDeque<>();
 
     public TConcurrentLinkedQueue() {
     }
 
     public TConcurrentLinkedQueue(Collection<? extends E> c) {
-        items.addAll(c);
+        for (E element : c) {
+            offer(element);
+        }
     }
 
     @Override
@@ -37,31 +39,31 @@ public class TConcurrentLinkedQueue<E> extends AbstractQueue<E> implements Queue
         if (e == null) {
             throw new NullPointerException();
         }
-        return items.offer(e);
+        return elements.offer(e);
     }
 
     @Override
     public E poll() {
-        return items.poll();
+        return elements.poll();
     }
 
     @Override
     public E peek() {
-        return items.peek();
+        return elements.peek();
     }
 
     @Override
     public Iterator<E> iterator() {
-        return items.iterator();
+        return elements.iterator();
     }
 
     @Override
     public int size() {
-        return items.size();
+        return elements.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return items.isEmpty();
+        return elements.isEmpty();
     }
 }
