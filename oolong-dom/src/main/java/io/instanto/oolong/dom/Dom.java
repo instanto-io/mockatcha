@@ -86,30 +86,35 @@ public final class Dom {
     throw new AssertionError("No element with the text \"" + text + "\"." + markup());
   }
 
-  public static void click(HTMLElement element) {
+  /** Clicks the element and returns it, so an expectation can follow in the same statement. */
+  public static HTMLElement click(HTMLElement element) {
     Objects.requireNonNull(element, "element").click();
+    return element;
   }
 
   /** Sets a field's value and reports it the way a browser does while someone types. */
-  public static void type(HTMLElement element, String text) {
+  public static HTMLElement type(HTMLElement element, String text) {
     Objects.requireNonNull(element, "element");
     Browser.setValue(element, Objects.requireNonNull(text, "text"));
     Browser.dispatch(element, "input");
     Browser.dispatch(element, "change");
+    return element;
   }
 
   /** Presses a key, using the names the browser uses, such as {@code Enter} or {@code Escape}. */
-  public static void press(HTMLElement element, String key) {
+  public static HTMLElement press(HTMLElement element, String key) {
     Objects.requireNonNull(element, "element");
     Objects.requireNonNull(key, "key");
     Browser.dispatchKey(element, "keydown", key);
     Browser.dispatchKey(element, "keyup", key);
+    return element;
   }
 
   /** Dispatches a bubbling event of this type. */
-  public static void fire(HTMLElement element, String type) {
+  public static HTMLElement fire(HTMLElement element, String type) {
     Objects.requireNonNull(element, "element");
     Browser.dispatch(element, Objects.requireNonNull(type, "type"));
+    return element;
   }
 
   static String markup() {

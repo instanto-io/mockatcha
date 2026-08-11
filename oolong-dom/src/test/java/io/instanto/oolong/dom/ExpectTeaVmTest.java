@@ -116,6 +116,14 @@ public class ExpectTeaVmTest {
   }
 
   @Test
+  public void actsAndExpectsInOneStatement() {
+    render("<input type='checkbox' id='agree'><input id='term'>");
+
+    expect(click(find("#agree"))).toBeChecked();
+    expect(Dom.type(find("#term"), "A-17")).toHaveValue("A-17");
+  }
+
+  @Test
   public void readsStateAfterTheUserActs() {
     render("<input type='checkbox' id='agree'>");
 

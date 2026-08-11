@@ -89,6 +89,14 @@ fire(find("form"), "submit");
 component listening for `input` sees it. Events bubble, so a listener on an
 ancestor is reached.
 
+Each of them returns the element it acted on, so an expectation about that same
+element can follow in one statement:
+
+```java
+expect(click(find("#agree"))).toBeChecked();
+expect(type(find("#term"), "A-17")).toHaveValue("A-17");
+```
+
 ## Expectations
 
 ```java
