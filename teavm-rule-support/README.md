@@ -86,6 +86,27 @@ Field com.example.MyTest.rule of type com.example.SomeMethodRule is a MethodRule
 which TeaVM cannot run because it needs java.lang.reflect.Method. Use a TestRule.
 ```
 
+## Using it in another module
+
+Add the dependency, above `teavm-junit` so that its copies of the runner classes
+come first on the classpath:
+
+```xml
+<dependency>
+  <groupId>io.instanto</groupId>
+  <artifactId>teavm-rule-support</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <scope>test</scope>
+</dependency>
+```
+
+That is the whole setup. There is nothing to register and nothing to call: the
+work happens while TeaVM compiles the test, and `@Rule` fields start being
+honoured.
+
+`mockatcha-examples` does exactly this, and `TimesheetRuleTest` there proves the
+rule is running rather than quietly doing nothing.
+
 ## Running it
 
 ```bash

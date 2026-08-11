@@ -495,9 +495,18 @@ public class PricingTest extends StrictTest {
 }
 ```
 
-A base class rather than a JUnit rule because TeaVM's test runner collects
-`@Before` and `@After` from superclasses, and runs rules only with the
-[patch in this repository](teavm-rule-support/README.md).
+A base class because TeaVM's test runner collects `@Before` and `@After` from
+superclasses. Where a test would rather not inherit from anything, the same
+checks come as a rule:
+
+```java
+@Rule
+public MockatchaRule mockatcha = new MockatchaRule();
+```
+
+That needs a runner that honours rules, which TeaVM's does once the
+[patch in this repository](teavm-rule-support/README.md) is on the test
+classpath.
 
 Where a stub is deliberately broad — shared setup that only some tests use —
 `lenient()` exempts it:

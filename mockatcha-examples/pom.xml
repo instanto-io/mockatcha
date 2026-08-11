@@ -20,6 +20,13 @@
       <artifactId>mockatcha-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Declared before teavm-junit so its copies of the runner classes win on the classpath. -->
+    <dependency>
+      <groupId>io.instanto</groupId>
+      <artifactId>teavm-rule-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>
