@@ -11,7 +11,7 @@ public DomRule dom = new DomRule();
 public void showsTheGreeting() {
     render("<h1 class='title'>Hello Ada</h1>");
 
-    assertThat(find("h1")).hasText("Hello Ada").hasClass("title");
+    expect(find("h1")).toHaveText("Hello Ada").toHaveClass("title");
 }
 ```
 
@@ -23,7 +23,7 @@ controlled clock as well.
 | --- | --- |
 | **Get started** | [Setup](#setup) · [A container per test](#a-container-per-test) |
 | **Drive it** | [Find things](#find-things) · [Events](#events) |
-| **Check it** | [Assertions](#assertions) |
+| **Check it** | [Expectations](#expectations) |
 | **Together** | [All three libraries](#all-three-libraries) |
 
 ## Setup
@@ -89,18 +89,23 @@ fire(find("form"), "submit");
 component listening for `input` sees it. Events bubble, so a listener on an
 ancestor is reached.
 
-## Assertions
+## Expectations
 
 ```java
-assertThat(find("h1")).hasText("Hello Ada");
-assertThat(find(".row")).hasClass("selected").doesNotHaveClass("muted");
-assertThat(find("#name")).hasValue("A-17").hasAttribute("id", "name");
-assertThat(find("#panel")).isVisible();
-assertThat(find("#submit")).isDisabled();
+expect(find("h1")).toHaveText("Hello Ada");
+expect(find(".row")).toHaveClass("selected").not().toHaveClass("muted");
+expect(find("#name")).toHaveValue("A-17").toHaveAttribute("id", "name");
+expect(find("#panel")).toBeVisible();
+expect(find("#submit")).toBeDisabled();
 ```
 
-Also `containsText`, `isHidden`, `isEnabled`, and `isChecked`. They chain, and a
-failure prints the element:
+Also `toContainText`, `toBeHidden`, `toBeEnabled`, `toBeChecked`,
+`toBeInTheDocument`, `toHaveFocus`, `toBeEmpty`, `toContainElement`,
+`toHaveStyle`, and `toContainHtml`. The last six are the ones both
+jasmine-jquery and jest-dom settled on.
+
+`not()` inverts the expectation that follows it, and only that one, as it does in
+Jasmine. They chain, and a failure prints the element:
 
 ```
 Wanted text "Goodbye" but found "Hello Ada".
@@ -146,7 +151,7 @@ verify(searches, never()).find(anyString());
 clock().tick(1);
 
 verify(searches).find("A-17");
-assertThat(findAll("#results li").get(0)).hasText("A-17 draft");
+expect(findAll("#results li").get(0)).toHaveText("A-17 draft");
 ```
 
 The whole test runs in a few milliseconds and never waits for a real timer. See

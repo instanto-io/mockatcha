@@ -4,7 +4,7 @@ import static io.instanto.oolong.dom.Dom.find;
 import static io.instanto.oolong.dom.Dom.findAll;
 import static io.instanto.oolong.dom.Dom.findByText;
 import static io.instanto.oolong.dom.Dom.render;
-import static io.instanto.oolong.dom.DomAssert.assertThat;
+import static io.instanto.oolong.dom.Expect.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -28,7 +28,7 @@ public class DomTeaVmTest {
   public void findsAnElementBySelector() {
     render("<h1 class='title'>Hello Ada</h1>");
 
-    assertThat(find("h1")).hasText("Hello Ada").hasClass("title");
+    expect(find("h1")).toHaveText("Hello Ada").toHaveClass("title");
   }
 
   @Test
@@ -36,14 +36,14 @@ public class DomTeaVmTest {
     render("<ul><li>one</li><li>two</li><li>three</li></ul>");
 
     assertEquals(3, findAll("li").size());
-    assertThat(findAll("li").get(1)).hasText("two");
+    expect(findAll("li").get(1)).toHaveText("two");
   }
 
   @Test
   public void findsAnElementByItsText() {
     render("<div><button id='save'>Save</button><button>Cancel</button></div>");
 
-    assertThat(findByText("Save")).hasAttribute("id", "save");
+    expect(findByText("Save")).toHaveAttribute("id", "save");
   }
 
   @Test
@@ -61,7 +61,7 @@ public class DomTeaVmTest {
     render("<h1 class='title'>Hello Ada</h1>");
 
     AssertionError failure =
-        assertThrows(AssertionError.class, () -> assertThat(find("h1")).hasText("Goodbye"));
+        assertThrows(AssertionError.class, () -> expect(find("h1")).toHaveText("Goodbye"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("Hello Ada"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("<h1"));
@@ -71,20 +71,20 @@ public class DomTeaVmTest {
   public void assertsOnAttributesClassesAndState() {
     render("<input id='name' value='A-17' class='field wide' disabled>");
 
-    assertThat(find("#name"))
-        .hasValue("A-17")
-        .hasClass("wide")
-        .doesNotHaveClass("narrow")
-        .hasAttribute("id", "name")
-        .isDisabled();
+    expect(find("#name"))
+        .toHaveValue("A-17")
+        .toHaveClass("wide")
+        .not().toHaveClass("narrow")
+        .toHaveAttribute("id", "name")
+        .toBeDisabled();
   }
 
   @Test
   public void assertsOnVisibility() {
     render("<p id='shown'>here</p><p id='gone' style='display:none'>hidden</p>");
 
-    assertThat(find("#shown")).isVisible();
-    assertThat(find("#gone")).isHidden();
+    expect(find("#shown")).toBeVisible();
+    expect(find("#gone")).toBeHidden();
   }
 
   @Test

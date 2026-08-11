@@ -9,7 +9,7 @@ import static io.instanto.oolong.dom.Dom.find;
 import static io.instanto.oolong.dom.Dom.findAll;
 import static io.instanto.oolong.dom.Dom.render;
 import static io.instanto.oolong.dom.Dom.type;
-import static io.instanto.oolong.dom.DomAssert.assertThat;
+import static io.instanto.oolong.dom.Expect.expect;
 import static org.junit.Assert.assertEquals;
 
 import io.instanto.mockatcha.ArgumentMatchers;
@@ -60,7 +60,7 @@ public class SearchBoxTeaVmTest {
 
     verify(searches).find("A-17");
     assertEquals(2, findAll("#results li").size());
-    assertThat(findAll("#results li").get(0)).hasText("A-17 draft");
+    expect(findAll("#results li").get(0)).toHaveText("A-17 draft");
   }
 
   @Test
@@ -77,7 +77,7 @@ public class SearchBoxTeaVmTest {
 
     verify(searches, never()).find("A-1");
     verify(searches).find("A-18");
-    assertThat(find("#results li")).hasText("A-18 draft");
+    expect(find("#results li")).toHaveText("A-18 draft");
   }
 
   private SearchBox renderSearchBox(SearchService searches) {

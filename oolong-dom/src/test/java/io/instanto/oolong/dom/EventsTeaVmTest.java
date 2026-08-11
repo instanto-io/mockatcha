@@ -6,7 +6,7 @@ import static io.instanto.oolong.dom.Dom.fire;
 import static io.instanto.oolong.dom.Dom.press;
 import static io.instanto.oolong.dom.Dom.render;
 import static io.instanto.oolong.dom.Dom.type;
-import static io.instanto.oolong.dom.DomAssert.assertThat;
+import static io.instanto.oolong.dom.Expect.expect;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class EventsTeaVmTest {
 
     type(find("#term"), "A-17");
 
-    assertThat(find("#term")).hasValue("A-17");
+    expect(find("#term")).toHaveValue("A-17");
     assertEquals(List.of("input", "change"), seen);
   }
 

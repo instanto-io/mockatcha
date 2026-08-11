@@ -44,6 +44,22 @@ final class Browser {
   @JSBody(params = {"element"}, script = "return !!element.checked;")
   static native boolean isChecked(HTMLElement element);
 
+  @JSBody(params = {"element"}, script = "return element.isConnected;")
+  static native boolean isInDocument(HTMLElement element);
+
+  @JSBody(params = {"element"}, script = "return document.activeElement === element;")
+  static native boolean hasFocus(HTMLElement element);
+
+  @JSBody(
+      params = {"element", "descendant"},
+      script = "return element !== descendant && element.contains(descendant);")
+  static native boolean contains(HTMLElement element, HTMLElement descendant);
+
+  @JSBody(
+      params = {"element", "property"},
+      script = "return window.getComputedStyle(element).getPropertyValue(property).trim();")
+  static native String style(HTMLElement element, String property);
+
   /** Whether the element takes up space and is not hidden by styling. */
   @JSBody(
       params = {"element"},
