@@ -82,6 +82,10 @@ public final class MockState {
     invocations.clear();
   }
 
+  void clearInvocations(String methodName) {
+    invocations.removeIf(invocation -> invocation.methodName().equals(methodName));
+  }
+
   void reset() {
     invocations.clear();
     stubs.clear();

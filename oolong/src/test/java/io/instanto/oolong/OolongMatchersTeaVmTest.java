@@ -9,6 +9,8 @@ import static io.instanto.mockatcha.Mockatcha.mock;
 import static io.instanto.mockatcha.Mockatcha.verify;
 import static io.instanto.mockatcha.Mockatcha.when;
 import static io.instanto.oolong.OolongMatchers.containing;
+import static io.instanto.oolong.OolongMatchers.containingExactly;
+import static io.instanto.oolong.OolongMatchers.instanceOf;
 import static io.instanto.oolong.OolongMatchers.mapContaining;
 import static io.instanto.oolong.OolongMatchers.ofSize;
 import static io.instanto.oolong.OolongMatchers.stringContaining;
@@ -80,6 +82,29 @@ public class OolongMatchersTeaVmTest {
   }
 
   @Test
+  public void matchesACollectionHoldingExactlyTheseItems() {
+    Audit audit = mock(Audit.class);
+
+    when(audit.batch(containingExactly("A-17", "A-16"))).thenReturn(3);
+
+    assertEquals(3, audit.batch(List.of("A-16", "A-17")));
+    assertEquals(0, audit.batch(List.of("A-16", "A-17", "A-18")));
+    assertEquals(0, audit.batch(List.of("A-16")));
+  }
+
+  @Test
+  public void matchesAValueOfAGivenType() {
+    Audit audit = mock(Audit.class);
+
+    when(audit.tagAny(instanceOf(String.class))).thenReturn("a string");
+    when(audit.tagAny(instanceOf(Integer.class))).thenReturn("a number");
+
+    assertEquals("a string", audit.tagAny("A-17"));
+    assertEquals("a number", audit.tagAny(38));
+    assertNull(audit.tagAny(1.5));
+  }
+
+  @Test
   public void matchesWithAConditionOfYourOwn() {
     Audit audit = mock(Audit.class);
 
@@ -118,5 +143,7 @@ public class OolongMatchersTeaVmTest {
     String tag(Map<String, String> tags);
 
     String measure(long count, double rate);
+
+    String tagAny(Object value);
   }
 }

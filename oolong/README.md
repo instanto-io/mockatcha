@@ -4,8 +4,7 @@ Oolong is a second vocabulary for [Mockatcha](../README.md) tests, borrowed from
 Jasmine, the JavaScript testing framework.
 
 Everything here works on ordinary Mockatcha mocks and spies, in the same test,
-so you can use as much or as little of it as you like. It adds three things
-Mockito has no need for but a browser test does:
+so you can use as much or as little of it as you like. It adds three things:
 
 - naming a method instead of calling it;
 - reading a mock's call record as data; and
@@ -22,7 +21,7 @@ assertEquals(1, calls(pricing, "currency").count());
 | **Inspect** | [Read the call record](#read-the-call-record) |
 | **Describe arguments** | [Shapes](#describe-the-shape-of-an-argument) · [Object properties](#match-an-object-by-its-properties) |
 | **Control time** | [The fake clock](#control-the-clock) |
-| **Reference** | [What is not here](#what-is-not-here) |
+| **Reference** | [Coming from Jasmine](#coming-from-jasmine) |
 
 ## Setup
 
@@ -46,10 +45,9 @@ out which call you mean. Oolong names the method instead:
 spyOn(pricing, "currency").andReturn("EUR");
 ```
 
-Nothing is called, so a spy's real method never runs during setup.
+Naming it leaves a spy's real method untouched during setup.
 
-The object has to be a mock or spy you already made — `spyOn` arranges
-behaviour on it, it does not turn a plain object into a spy:
+`spyOn` arranges behaviour on a mock or spy you have already made:
 
 ```java
 PricingService pricing = spy(PricingService.class, real);
@@ -88,8 +86,22 @@ assertEquals(List.of("A-17"), totals.first().arguments());
 assertEquals("A-18", totals.mostRecent().argument(0));
 ```
 
-`count`, `any`, `first`, `mostRecent`, `at`, `argsFor`, and `all` are available.
+`count`, `any`, `first`, `mostRecent`, `at`, `argsFor`, and `all` are available,
+along with `allArgs()` for every call's arguments at once:
+
+```java
+assertEquals(List.of(List.of("A-17"), List.of("A-18")), totals.allArgs());
+```
+
 `calls(mock)` without a method name reads everything recorded on that mock.
+
+`reset()` forgets the calls a log covers while keeping any arranged behaviour,
+which suits a fixture shared between phases of a longer test:
+
+```java
+calls(pricing, "total").reset();   // just this method
+calls(pricing).reset();            // everything on the mock
+```
 
 ## Describe the shape of an argument
 
@@ -100,12 +112,15 @@ argument of a call uses a matcher, they all must.
 when(audit.record(stringContaining("timesheet"))).thenReturn("kept");
 when(audit.record(stringMatching("^audit:[A-Z]-\\d+$"))).thenReturn("kept");
 when(audit.batch(containing("A-17"))).thenReturn(1);
-when(audit.batch(ofSize(2))).thenReturn(2);
+when(audit.batch(containingExactly("A-16", "A-17"))).thenReturn(2);
+when(audit.batch(ofSize(2))).thenReturn(3);
 when(audit.tag(mapContaining("employee", "A-17"))).thenReturn("kept");
+when(audit.tagAny(instanceOf(String.class))).thenReturn("a string");
 ```
 
-`containing` and `ofSize` work on arrays and collections; extra items are
-allowed, so they describe a shape rather than demand equality.
+`containing` and `containingExactly` both work on arrays and collections and
+ignore order. `containing` allows extra items; `containingExactly` expects the
+same items and no others.
 
 ## Match an object by its properties
 
@@ -119,15 +134,14 @@ verify(repository).save(objectContaining(Timesheet.class,
         Map.of("employeeId", "A-17", "hours", 38)));
 ```
 
-A property is a no-argument accessor — `hours()`, `getHours()`, or
-`isApproved()` — or a visible field, whether declared on the class or inherited.
-Private members are not properties.
+A property is a public or protected no-argument accessor — `hours()`,
+`getHours()`, or `isApproved()` — or a visible field, whether declared on the
+class or inherited.
 
-The type has to be written out in full, as it is for `mock`. Misspell a property
-and the test fails immediately, listing the names that do exist, rather than
-quietly matching nothing.
+The type is written out in full, as it is for `mock`. Misspell a property and
+the test fails immediately, listing the names that do exist.
 
-The same reader is available on its own, which pairs well with a captor:
+The reader is available on its own, which pairs well with a captor:
 
 ```java
 PropertyReader<Timesheet> reader = propertiesOf(Timesheet.class);
@@ -137,10 +151,7 @@ assertEquals("A-17", reader.read(saved.getValue(), "employeeId"));
 ## Control the clock
 
 Code that polls, debounces, retries, or animates is awkward to test against real
-time. A test either sleeps — slow, and flaky — or reaches inside the code under
-test to get at its timers.
-
-Install the clock and time stops moving on its own:
+time. Install the clock and time moves only when the test says so:
 
 ```java
 clock().install();
@@ -185,15 +196,30 @@ Two rules:
 
 There is one clock, because the browser has one set of timer functions.
 
-## What is not here
+## Coming from Jasmine
 
-**`expect(spy).toHaveBeenCalledWith(...)`** — Jasmine's assertion style is left
-out on purpose. JUnit's assertions and Mockatcha's `verify` already cover it.
-
-**`createSpyObj('name', ['a', 'b'])`** — builds an object with no type. In Java
-the interface already exists, so `mock(Notifier.class)` is shorter and the
-compiler checks it.
-
-**Jasmine's in-place `spyOn`** replaces a method on an object that already
-exists. TeaVM decides method dispatch while it compiles, so the object has to be
-a mock or spy from the start.
+| Jasmine | Oolong |
+| --- | --- |
+| `spyOn(obj, 'method')` | `spyOn(mock, "method")`, on a mock or spy you created |
+| `.and.returnValue(v)` | `.andReturn(v)` |
+| `.and.returnValues(a, b)` | `.andReturnValues(a, b)` |
+| `.and.throwError(e)` | `.andThrow(e)` |
+| `.and.callFake(fn)` | `.andCallFake(answer)` |
+| `.and.callThrough()` | `.andCallThrough()` |
+| `.and.stub()` | `.andStub()` |
+| `.withArgs(...)` | `.withArgs(...)` |
+| `spy.calls.count()` | `calls(mock, "method").count()` |
+| `spy.calls.argsFor(n)` | `calls(mock, "method").argsFor(n)` |
+| `spy.calls.allArgs()` | `calls(mock, "method").allArgs()` |
+| `spy.calls.mostRecent()` | `calls(mock, "method").mostRecent()` |
+| `spy.calls.reset()` | `calls(mock, "method").reset()` |
+| `jasmine.any(Type)` | `instanceOf(Type.class)` |
+| `jasmine.stringMatching(re)` | `stringMatching(re)` |
+| `jasmine.arrayContaining([...])` | `containing(...)` |
+| `jasmine.arrayWithExactContents([...])` | `containingExactly(...)` |
+| `jasmine.objectContaining({...})` | `objectContaining(Type.class, ...)` |
+| `jasmine.clock().install()` | `clock().install()` |
+| `jasmine.clock().tick(ms)` | `clock().tick(ms)` |
+| `jasmine.clock().mockDate(d)` | `clock().setTime(millis)` |
+| `createSpyObj('n', ['a'])` | `mock(SomeInterface.class)` |
+| `expect(spy).toHaveBeenCalled()` | `verify(mock).method()`, from Mockatcha |

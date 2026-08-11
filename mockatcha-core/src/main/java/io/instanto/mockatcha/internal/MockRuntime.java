@@ -131,7 +131,17 @@ public final class MockRuntime {
 
   public static void beginVerification(Object mock, VerificationMode mode) {
     MockState state = requireState(mock);
-    verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"));
+    verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
+    lastInvocation = null;
+    MATCHERS.clear();
+  }
+
+  /** Verifies the call that follows against an order rather than against a total count. */
+  public static void beginOrderedVerification(
+      Object mock, VerificationMode mode, InOrderImpl order) {
+    MockState state = requireState(mock);
+    verification =
+        new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), order);
     lastInvocation = null;
     MATCHERS.clear();
   }
@@ -154,6 +164,12 @@ public final class MockRuntime {
 
   public static void clearInvocations(Object mock) {
     requireState(mock).clearInvocations();
+    lastInvocation = null;
+  }
+
+  /** Forgets the calls recorded for one method name, keeping the rest. */
+  public static void clearInvocations(Object mock, String methodName) {
+    requireState(mock).clearInvocations(Objects.requireNonNull(methodName, "methodName"));
     lastInvocation = null;
   }
 
@@ -212,6 +228,10 @@ public final class MockRuntime {
     verification = null;
     if (request.state != state) {
       throw new IllegalStateException("verify() must be followed by a call on the same mock");
+    }
+    if (request.order != null) {
+      request.order.check(state.mock(), pattern, request.mode);
+      return;
     }
     request.mode.verify(
         new VerificationContext(
@@ -302,10 +322,12 @@ public final class MockRuntime {
   private static final class VerificationRequest {
     private final MockState state;
     private final VerificationMode mode;
+    private final InOrderImpl order;
 
-    private VerificationRequest(MockState state, VerificationMode mode) {
+    private VerificationRequest(MockState state, VerificationMode mode, InOrderImpl order) {
       this.state = state;
       this.mode = mode;
+      this.order = order;
     }
   }
 

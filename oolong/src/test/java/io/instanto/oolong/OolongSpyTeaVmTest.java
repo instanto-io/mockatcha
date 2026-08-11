@@ -140,6 +140,44 @@ public class OolongSpyTeaVmTest {
   }
 
   @Test
+  public void readsTheArgumentsOfEveryCall() {
+    PricingService pricing = mock(PricingService.class);
+
+    pricing.total("A-17");
+    pricing.total("A-18");
+
+    assertEquals(
+        List.of(List.of("A-17"), List.of("A-18")), calls(pricing, "total").allArgs());
+  }
+
+  @Test
+  public void forgetsTheCallsOfOneMethod() {
+    PricingService pricing = mock(PricingService.class);
+    spyOn(pricing, "currency").andReturn("EUR");
+    pricing.total("A-17");
+    pricing.currency();
+
+    calls(pricing, "total").reset();
+
+    assertEquals(0, calls(pricing, "total").count());
+    assertEquals(1, calls(pricing, "currency").count());
+    assertEquals("EUR", pricing.currency());
+  }
+
+  @Test
+  public void forgetsEveryCallOnTheMock() {
+    PricingService pricing = mock(PricingService.class);
+    spyOn(pricing, "currency").andReturn("EUR");
+    pricing.total("A-17");
+    pricing.currency();
+
+    calls(pricing).reset();
+
+    assertEquals(0, calls(pricing).count());
+    assertEquals("EUR", pricing.currency());
+  }
+
+  @Test
   public void worksAlongsideTheMockitoShapedApi() {
     PricingService pricing = mock(PricingService.class);
 

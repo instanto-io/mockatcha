@@ -43,6 +43,20 @@ public final class OolongMatchers {
         "containing(" + Arrays.toString(wanted) + ")");
   }
 
+  /** Matches an array or collection holding exactly these items, in any order. */
+  public static <T> T containingExactly(Object... items) {
+    Object[] wanted = items.clone();
+    return argThat(
+        argument -> sizeOf(argument) == wanted.length && containsAll(argument, wanted),
+        "containingExactly(" + Arrays.toString(wanted) + ")");
+  }
+
+  /** Matches a value of this type. */
+  public static <T> T instanceOf(Class<?> type) {
+    Objects.requireNonNull(type, "type");
+    return argThat(type::isInstance, "instanceOf(" + type.getName() + ")");
+  }
+
   /** Matches a map that contains this entry, whatever else it holds. */
   public static <T> T mapContaining(Object key, Object value) {
     return argThat(

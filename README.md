@@ -23,9 +23,9 @@ second way of writing the same things.
 | --- | --- |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
 | **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Change over time](#change-the-answer-over-time) |
-| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [Capture an argument](#capture-an-argument) |
+| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Capture an argument](#capture-an-argument) |
 | **Beyond interfaces** | [Mock a class](#mock-a-class) · [Spy on a real object](#spy-on-a-real-object) · [Set up without calling](#set-up-without-calling-the-method) |
-| **Reference** | [Reuse and reset](#reuse-and-reset) · [What it cannot do](#what-it-cannot-do) · [Modules](#modules) · [Build](#build-this-repository) |
+| **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
 
 ## Setup
 
@@ -95,8 +95,8 @@ public class GreetingComponentTest {
 
 Three things are happening.
 
-**`mock(...)`** creates a stand-in. Every method on it does nothing and returns
-an empty value — `null`, `0`, or `false` — until you say otherwise.
+**`mock(...)`** creates a stand-in. Until you say otherwise, every method on it
+returns an empty value: `null`, `0`, or `false`.
 
 **`when(...)`** says what one particular call should return.
 
@@ -115,7 +115,7 @@ when(profiles.find("A-17")).thenReturn(new Profile("A-17", "Ada"));
 ```
 
 Every later call with those exact arguments gets that profile. Calls with
-different arguments are unaffected and still return `null`.
+different arguments still return `null`.
 
 Overloads are separate: `total(String)` and `total(int)` are configured
 independently.
@@ -206,12 +206,35 @@ verify(feed, atLeast(2)).refresh();
 verify(feed, atMost(5)).refresh();
 ```
 
-`only()` is stronger than any of these. It says the call happened once **and
-nothing else was called on that mock** — which is how to show that a cache did
-not go back to its store:
+`only()` is stronger than any of these. It says the call happened once **and it
+was the only call on that mock** — which is how to show that a cache answered
+from memory:
 
 ```java
 verify(store, only()).load("A-17");
+```
+
+## Verify the order of calls
+
+When the sequence matters, group the mocks into an `InOrder` and verify through
+it:
+
+```java
+InOrder order = inOrder(repository, notifications);
+
+order.verify(repository).save(report);
+order.verify(notifications).send("saved");
+```
+
+Each `verify` consumes the calls it matches, so the next one looks only at what
+came afterwards. Other calls in between are allowed, which keeps the test
+focused on the sequence you care about.
+
+`times`, `never`, `atLeast`, and `atLeastOnce` work here as they do elsewhere.
+When you want to say that a sequence was the whole story, finish with:
+
+```java
+order.verifyNoMoreInteractions();
 ```
 
 ## Capture an argument
@@ -251,15 +274,15 @@ method is replaced.
 
 A few things to know:
 
-- the class must not be `final`, and must have a no-argument constructor. If it
-  does not, the test fails to compile with a message naming the rule it broke;
-- `static`, `private`, and `final` methods keep their real behaviour, because a
-  subclass cannot replace them; and
+- the class must be extendable and have a no-argument constructor, which is
+  run. Anything else is reported while the test compiles, naming the rule that
+  applied;
+- `static`, `private`, and `final` methods keep their real behaviour; and
 - `equals`, `hashCode`, and `toString` answer by identity and with a fixed
-  description, so printing a mock never runs real code.
+  description, so printing a mock is always safe.
 
-Prefer an interface where your design allows one. Class mocking is for
-boundaries you do not control.
+Prefer an interface where your design allows one. Class mocking suits the
+boundaries you inherit.
 
 ## Spy on a real object
 
@@ -285,13 +308,13 @@ Notifier notifier = spy(Notifier.class, new EmailNotifier());
 
 Two things to know before relying on a spy:
 
-- the spy is a different object from the one it wraps, so `==` tells them
-  apart; and
-- if a real method calls another method on itself, that inner call is not
-  intercepted. Stubbing `currency()` does not change what `summary()` sees when
-  `summary()` calls it.
+- the spy is a separate object from the one it wraps, so `==` tells them apart;
+  and
+- when a real method calls another method on itself, that inner call reaches the
+  wrapped object directly. Stubbing `currency()` changes what the test sees, and
+  `summary()` still sees the real one when it calls `currency()` itself.
 
-Where the second point matters, mock the collaborator instead of spying on it.
+Where the second point matters, mock the collaborator instead.
 
 ## Set up without calling the method
 
@@ -328,34 +351,28 @@ List<Invocation> calls = mockingDetails(repository).getInvocations();
 Oolong offers a [more readable way](oolong/README.md#read-the-call-record) to do
 the same thing.
 
-## What it cannot do
+## Requirements
 
-Mockatcha would rather be clear about its limits than fail confusingly.
+Mockatcha works on interfaces, and on classes that meet three conditions:
 
-- **Static methods and constructors** cannot be mocked.
-- **Final classes** cannot be mocked, and **final and private methods** keep
-  their real behaviour.
-- **A mocked class must have a no-argument constructor**, which is run.
-- **The class passed to `mock` or `spy` must be written out in full** at the
-  call site: `mock(ProfileRepository.class)`, not `mock(someVariable)`.
+- the class can be extended;
+- it has a no-argument constructor, which is run when the mock is created; and
+- the methods you want to replace are instance methods that are public or
+  protected. Static, private, and final methods keep their real behaviour.
 
-Unsupported cases are reported while the test compiles, naming the type and the
-rule it failed.
+The type passed to `mock` or `spy` is written out in full at the call site:
+`mock(ProfileRepository.class)`. Anything outside these rules is reported while
+the test compiles, naming the type and the rule that applied.
 
-Not yet supported, but possible: `InOrder` verification,
-`verifyNoMoreInteractions`, and annotation-driven mocks. The
-[design record](CLASS_MOCKING_AND_SPIES.md) has the full picture.
+The [design record](CLASS_MOCKING_AND_SPIES.md) covers what is planned next.
 
 ## Modules
 
 | Module | What it is |
 | --- | --- |
-| `mockatcha-core` | The library described above. |
+| `mockatcha-core` | The library described above. Its one dependency is TeaVM's metaprogramming API. |
 | `oolong` | A [second vocabulary](oolong/README.md): configure by method name, read the call record, control the clock. |
-| `mockatcha-examples` | Worked examples you can run. Applications do not depend on it. |
-
-Mockatcha has no dependency on Mockito, Byte Buddy, CDI, a browser DOM, Sarto,
-or Verrai.
+| `mockatcha-examples` | Worked examples you can run. |
 
 ## Examples
 

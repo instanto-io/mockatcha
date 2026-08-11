@@ -34,14 +34,14 @@ public final class Oolong {
   /** Reads every call recorded on a mock or spy. */
   public static CallLog calls(Object mock) {
     requireMock(mock, "calls");
-    return new CallLog(MockAccess.invocations(mock), String.valueOf(mock));
+    return new CallLog(mock, null, MockAccess.invocations(mock), String.valueOf(mock));
   }
 
   /** Reads the calls recorded for one method name. */
   public static CallLog calls(Object mock, String methodName) {
     requireMock(mock, "calls");
     Objects.requireNonNull(methodName, "methodName");
-    return new CallLog(MockAccess.invocations(mock, methodName), methodName);
+    return new CallLog(mock, methodName, MockAccess.invocations(mock, methodName), methodName);
   }
 
   /** The fake clock, which does nothing until it is installed. There is one per test run. */

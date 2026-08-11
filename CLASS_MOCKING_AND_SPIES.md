@@ -19,8 +19,9 @@ delivery sequence it described has been completed.
 | Matchers: `any`, every primitive, `eq`, `isNull`, `isNotNull`, `argThat` | Done |
 | `ArgumentCaptor` | Done |
 | Verification: `times`, `never`, `atLeast`, `atLeastOnce`, `atMost`, `only` | Done |
+| `InOrder` verification, following Mockito's rules | Done |
 | Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
-| Jasmine-shaped layer: name-based configuration, call inspection, fake clock, shape matchers, `objectContaining` | Done, in the `oolong` module |
+| Jasmine-shaped layer: name-based configuration, call inspection, fake clock, matchers including `objectContaining` | Done, in the `oolong` module |
 | Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
 
 The four milestones the original handoff set out — prove subclass generation,
@@ -241,6 +242,7 @@ Every supported behaviour runs through `TeaVMTestRunner` in Chrome.
 | Class shape, results, dispatch, methods, isolation | `MockatchaClassTeaVmTest` |
 | Spies, arranged answers, delegation limits | `MockatchaSpyTeaVmTest` |
 | Captors and verification modes | `CaptorAndVerificationModesTeaVmTest` |
+| Ordered verification | `InOrderTeaVmTest` |
 | Interface mocking, unchanged | `MockatchaTeaVmTest` |
 | Consumer-facing examples | `mockatcha-examples` |
 
@@ -278,7 +280,6 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | What it needs |
 | --- | --- |
-| `InOrder` verification | `Invocation` has no global sequence number, so calls across two mocks cannot be ordered. Adding a monotonic counter at record time is easy; the design question is how strict `inOrder` should be about intervening calls, given Mockito's is not strict by default. |
 | Strict stubbing and `UnnecessaryStubbingException` | Track whether each stub was ever matched, then report the unused ones. The runtime side is small. The open question is what triggers the report: Mockito uses a JUnit rule or runner, and how those compose with `TeaVMTestRunner` needs checking before the API is designed. |
 | `thenCallRealMethod()` | On a spy this already exists as Oolong's `andCallThrough`. On a class mock with no delegate it means calling `super`, which the generated subclass would have to emit as a second call path. A day in `SubclassGenerator`, and worth it only if there is demand. |
 | Default answers, as in `mock(X.class, RETURNS_SMART_NULLS)` | A second `@Meta` parameter and a default `Answer` on `MockState`. `RETURNS_SMART_NULLS` is the one worth having: a null returned by an unstubbed mock is the least helpful failure a browser test can produce. |
@@ -300,13 +301,13 @@ None of these need the generator to change. They are new behaviour in
 
 ### A reasonable next tranche
 
-`verifyNoMoreInteractions` and `AdditionalMatchers` need no generator changes
-and are what remains of the easy gap. `InOrder` is the first item that needs a
-decision rather than only code.
+`verifyNoMoreInteractions` outside an order, and `AdditionalMatchers`, need no
+generator changes and are what remains of the easy gap. Two richer items are
+worth considering next: failure messages that list the calls that did happen,
+and detection of matchers left over from a call on something that is not a mock.
 
-`ArgumentCaptor` and the verification modes were the first tranche and are
-done. Two things learned while building them are worth keeping in mind for the
-rest:
+`ArgumentCaptor`, the verification modes, and `InOrder` are done. Three things
+learned while building them are worth keeping in mind for the rest:
 
 - **`capture()` has to return a usable value.** It stands in for an argument, so
   for a primitive parameter it must return something that unboxes rather than
@@ -315,9 +316,14 @@ rest:
   needs the same treatment.
 - **A mode that needs more than a count needs more than an int.** `only()` has
   to know whether anything else was called, which is why `VerificationMode`
-  gained a `VerificationContext` overload with a default implementation. Modes
-  that only count are still lambdas; `InOrder` will want the same seam widened
-  again, to carry a global call sequence.
+  gained a `VerificationContext` overload with a default implementation.
+- **Ordered verification reads the mode back.** Mockito's in-order `times(n)`
+  first looks at the run of matching calls that starts next, and falls back to
+  every matching call when that run is a different size, so it needs the wanted
+  count rather than a yes-or-no answer. `times`, `never`, `atLeast`, and
+  `atMost` are therefore `CountingMode` instances carrying a kind and a count,
+  and a custom mode written as a lambda still works everywhere except inside an
+  order.
 
 ## Explicitly deferred work
 

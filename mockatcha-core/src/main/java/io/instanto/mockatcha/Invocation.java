@@ -8,9 +8,12 @@ import java.util.Objects;
 /** Immutable record of one method call made on a mock. */
 public final class Invocation {
 
+  private static int sequenceGenerator;
+
   private final Object mock;
   private final String method;
   private final Object[] arguments;
+  private final int sequence = sequenceGenerator++;
 
   public Invocation(Object mock, String method, Object[] arguments) {
     this.mock = Objects.requireNonNull(mock, "mock");
@@ -20,6 +23,11 @@ public final class Invocation {
 
   public Object mock() {
     return mock;
+  }
+
+  /** Where this call falls in the order shared by every mock. */
+  public int sequence() {
+    return sequence;
   }
 
   /** Returns a stable method identifier including parameter types. */

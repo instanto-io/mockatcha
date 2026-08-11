@@ -87,7 +87,7 @@ public final class Spy {
         matching.add(invocation);
       }
     }
-    return new CallLog(matching, description);
+    return new CallLog(mock, methodName, matching, description);
   }
 
   private boolean matchesArguments(Invocation invocation) {

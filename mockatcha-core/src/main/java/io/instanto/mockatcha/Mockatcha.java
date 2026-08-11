@@ -8,6 +8,8 @@ import static org.teavm.metaprogramming.Metaprogramming.exit;
 import static org.teavm.metaprogramming.Metaprogramming.handle;
 import static org.teavm.metaprogramming.Metaprogramming.proxy;
 
+import io.instanto.mockatcha.internal.CountingMode;
+import io.instanto.mockatcha.internal.InOrderImpl;
 import io.instanto.mockatcha.internal.MockRuntime;
 import io.instanto.mockatcha.internal.MockState;
 import io.instanto.mockatcha.internal.StubberImpl;
@@ -84,78 +86,45 @@ public final class Mockatcha {
 
   /** Expects exactly this many matching calls. */
   public static VerificationMode times(int expectedCount) {
-    requireNotNegative(expectedCount);
-    return (actualCount, invocation) -> {
-      if (actualCount != expectedCount) {
-        throw new AssertionError(
-            "Wanted " + expectedCount + " invocation(s) of " + invocation + " but observed "
-                + actualCount);
-      }
-    };
+    return CountingMode.exact(expectedCount);
   }
 
   /** Expects no matching call. */
   public static VerificationMode never() {
-    return times(0);
+    return CountingMode.exact(0);
   }
 
   /** Expects at least this many matching calls, and does not care how many more. */
   public static VerificationMode atLeast(int minimumCount) {
-    requireNotNegative(minimumCount);
-    return (actualCount, invocation) -> {
-      if (actualCount < minimumCount) {
-        throw new AssertionError(
-            "Wanted at least " + minimumCount + " invocation(s) of " + invocation
-                + " but observed " + actualCount);
-      }
-    };
+    return CountingMode.atLeast(minimumCount);
   }
 
   /** Expects the call to have happened, without fixing how often. */
   public static VerificationMode atLeastOnce() {
-    return atLeast(1);
+    return CountingMode.atLeast(1);
   }
 
   /** Expects no more than this many matching calls, including none at all. */
   public static VerificationMode atMost(int maximumCount) {
-    requireNotNegative(maximumCount);
-    return (actualCount, invocation) -> {
-      if (actualCount > maximumCount) {
-        throw new AssertionError(
-            "Wanted at most " + maximumCount + " invocation(s) of " + invocation
-                + " but observed " + actualCount);
-      }
-    };
+    return CountingMode.atMost(maximumCount);
   }
 
   /** Expects this call once, and nothing else on the same mock. */
   public static VerificationMode only() {
-    return new VerificationMode() {
-      @Override
-      public void verify(int actualCount, String invocationDescription) {
-        verify(new VerificationContext(actualCount, actualCount, invocationDescription));
-      }
-
-      @Override
-      public void verify(VerificationContext context) {
-        if (context.matchingCount() != 1) {
-          throw new AssertionError(
-              "Wanted 1 invocation(s) of " + context.description() + " but observed "
-                  + context.matchingCount());
-        }
-        if (context.totalCount() != 1) {
-          throw new AssertionError(
-              "Wanted " + context.description() + " to be the only call on this mock, but "
-                  + (context.totalCount() - 1) + " other call(s) were recorded");
-        }
-      }
-    };
+    return CountingMode.only();
   }
 
-  private static void requireNotNegative(int count) {
-    if (count < 0) {
-      throw new IllegalArgumentException("An invocation count must not be negative: " + count);
-    }
+  /**
+   * Verifies calls in the order they happened, across these mocks.
+   *
+   * <pre>{@code
+   * InOrder order = inOrder(repository, notifications);
+   * order.verify(repository).save(report);
+   * order.verify(notifications).send("saved");
+   * }</pre>
+   */
+  public static InOrder inOrder(Object... mocks) {
+    return new InOrderImpl(mocks);
   }
 
   public static MockingDetails mockingDetails(Object mock) {

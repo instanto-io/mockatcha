@@ -36,6 +36,16 @@ public final class MockAccess {
     MockRuntime.removeStubsByName(mock, methodName);
   }
 
+  /** Forgets every call recorded on a mock, keeping its arranged behaviour. */
+  public static void clearInvocations(Object mock) {
+    MockRuntime.clearInvocations(mock);
+  }
+
+  /** Forgets the calls recorded for one method name, keeping the rest. */
+  public static void clearInvocations(Object mock, String methodName) {
+    MockRuntime.clearInvocations(mock, methodName);
+  }
+
   /** Returns every call recorded on a mock, oldest first. */
   public static List<Invocation> invocations(Object mock) {
     return MockRuntime.invocations(mock);
