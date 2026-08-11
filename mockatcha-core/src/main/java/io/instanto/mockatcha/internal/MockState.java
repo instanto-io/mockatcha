@@ -3,7 +3,9 @@ package io.instanto.mockatcha.internal;
 import io.instanto.mockatcha.Invocation;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Runtime state captured by a generated mock implementation. */
 public final class MockState {
@@ -12,6 +14,7 @@ public final class MockState {
   private Object mock;
   private final List<Invocation> invocations = new ArrayList<>();
   private final List<Stub> stubs = new ArrayList<>();
+  private final Set<Integer> verified = new HashSet<>();
 
   MockState(String description) {
     this.description = description;
@@ -47,14 +50,34 @@ public final class MockState {
   }
 
   int count(InvocationPattern pattern) {
-    int count = 0;
-    for (var invocation : invocations) {
-      Object[] arguments = invocation.arguments().toArray();
-      if (pattern.matches(invocation.method(), arguments)) {
-        count++;
+    return matching(pattern).size();
+  }
+
+  List<Invocation> matching(InvocationPattern pattern) {
+    List<Invocation> matched = new ArrayList<>();
+    for (Invocation invocation : invocations) {
+      if (pattern.matches(invocation.method(), invocation.arguments().toArray())) {
+        matched.add(invocation);
       }
     }
-    return count;
+    return matched;
+  }
+
+  void markVerified(List<Invocation> matched) {
+    for (Invocation invocation : matched) {
+      verified.add(invocation.sequence());
+    }
+  }
+
+  /** The calls no verification has accounted for, oldest first. */
+  List<Invocation> unverified() {
+    List<Invocation> remaining = new ArrayList<>();
+    for (Invocation invocation : invocations) {
+      if (!verified.contains(invocation.sequence())) {
+        remaining.add(invocation);
+      }
+    }
+    return remaining;
   }
 
   Stub addStub(InvocationPattern pattern) {
@@ -80,14 +103,23 @@ public final class MockState {
 
   void clearInvocations() {
     invocations.clear();
+    verified.clear();
   }
 
   void clearInvocations(String methodName) {
-    invocations.removeIf(invocation -> invocation.methodName().equals(methodName));
+    invocations.removeIf(
+        invocation -> {
+          if (!invocation.methodName().equals(methodName)) {
+            return false;
+          }
+          verified.remove(invocation.sequence());
+          return true;
+        });
   }
 
   void reset() {
     invocations.clear();
+    verified.clear();
     stubs.clear();
   }
 }

@@ -127,6 +127,30 @@ public final class Mockatcha {
     return new InOrderImpl(mocks);
   }
 
+  /**
+   * Expects every call on these mocks to have been verified already.
+   *
+   * <p>Use after the verifications a test cares about, to say that nothing else happened.
+   */
+  public static void verifyNoMoreInteractions(Object... mocks) {
+    MockRuntime.verifyNoMoreInteractions(mocks);
+  }
+
+  /** Expects these mocks to have been called at all. */
+  public static void verifyNoInteractions(Object... mocks) {
+    MockRuntime.verifyNoInteractions(mocks);
+  }
+
+  /**
+   * Fails when an argument matcher was created but never used by a call on a mock.
+   *
+   * <p>Useful in an {@code @After} method, where it reports the mistake against the test that
+   * made it rather than the next one to run.
+   */
+  public static void validateUsage() {
+    MockRuntime.validateUsage();
+  }
+
   public static MockingDetails mockingDetails(Object mock) {
     return new MockingDetails(mock);
   }

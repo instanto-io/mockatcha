@@ -23,7 +23,7 @@ second way of writing the same things.
 | --- | --- |
 | **Get started** | [Setup](#setup) · [Your first test](#your-first-test) |
 | **Say what a mock does** | [Return a value](#return-a-value) · [Flexible arguments](#flexible-arguments) · [Calculate or fail](#calculate-an-answer-or-fail) · [Change over time](#change-the-answer-over-time) |
-| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Capture an argument](#capture-an-argument) |
+| **Check what happened** | [Verify a call](#verify-a-call) · [How many times](#how-many-times) · [In what order](#verify-the-order-of-calls) · [Account for every call](#account-for-every-call) · [Capture an argument](#capture-an-argument) · [When a check fails](#when-a-check-fails) |
 | **Beyond interfaces** | [Mock a class](#mock-a-class) · [Spy on a real object](#spy-on-a-real-object) · [Set up without calling](#set-up-without-calling-the-method) |
 | **Reference** | [Reuse and reset](#reuse-and-reset) · [Requirements](#requirements) · [Modules](#modules) · [Build](#build-this-repository) |
 
@@ -135,6 +135,19 @@ There is a matcher for each primitive type, plus `any()`, `eq(...)`,
 when(store.save(argThat(timesheet -> timesheet.hours() > 40))).thenReturn(true);
 ```
 
+`AdditionalMatchers` adds comparison and combination:
+
+```java
+verify(store).grade(and(gt(10), lt(100)));
+verify(store).grade(or(lt(10), gt(100)));
+verify(audit).log(not(eq("ignored")));
+verify(audit).log(find("A-\\d+"));
+verify(reader).read(aryEq(new byte[] {1, 2, 3}));
+```
+
+`gt`, `geq`, `lt`, and `leq` take `int`, `long`, `double`, or anything
+`Comparable`; `cmpEq` compares by ordering where `equals` would be too strict.
+
 One rule to remember: **if any argument uses a matcher, they all must.** Mixing
 a matcher with a plain value in the same call is ambiguous, so wrap the plain
 one in `eq`:
@@ -236,6 +249,47 @@ When you want to say that a sequence was the whole story, finish with:
 ```java
 order.verifyNoMoreInteractions();
 ```
+
+## Account for every call
+
+`verifyNoMoreInteractions` expects everything on a mock to have been verified
+already, which turns a test into a complete statement about what the class did:
+
+```java
+verify(repository).save(report);
+verify(repository).audit("saved");
+verifyNoMoreInteractions(repository);
+```
+
+`verifyNoInteractions(mock)` says a collaborator was left alone entirely.
+
+Use these where the absence of extra work is the behaviour you are describing.
+On a mock with many incidental calls they make a test harder to change than it
+needs to be.
+
+## When a check fails
+
+A failed verification lists what did happen:
+
+```
+Wanted 1 invocation(s) of save([something else]) but observed 0.
+Calls recorded on this mock:
+  save([report])
+  audit([done])
+```
+
+Matchers are held in a queue until the call they belong to consumes them, so a
+matcher passed to something that is not a mock would otherwise be applied to the
+next call on a real one. That is reported instead:
+
+```
+verify() found 1 argument matcher(s) left over: [anyString()].
+A matcher belongs inside a call on a mock, as in verify(mock).save(any()).
+```
+
+The check runs when a mock is created and when `when` or `verify` begins.
+`Mockatcha.validateUsage()` runs it on demand, which suits an `@After` method:
+it reports the mistake against the test that made it.
 
 ## Capture an argument
 

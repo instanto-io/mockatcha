@@ -27,6 +27,7 @@ public final class MockRuntime {
   private MockRuntime() {}
 
   public static MockState createState(String description) {
+    requireNoPendingMatchers("Creating a mock");
     return new MockState(description);
   }
 
@@ -120,6 +121,7 @@ public final class MockRuntime {
   }
 
   public static <T> OngoingStubbing<T> when() {
+    requireNoPendingMatchers("when()");
     if (lastInvocation == null) {
       throw new IllegalStateException("when() requires a mock invocation");
     }
@@ -131,27 +133,27 @@ public final class MockRuntime {
 
   public static void beginVerification(Object mock, VerificationMode mode) {
     MockState state = requireState(mock);
+    requireNoPendingMatchers("verify()");
     verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
     lastInvocation = null;
-    MATCHERS.clear();
   }
 
   /** Verifies the call that follows against an order rather than against a total count. */
   public static void beginOrderedVerification(
       Object mock, VerificationMode mode, InOrderImpl order) {
     MockState state = requireState(mock);
+    requireNoPendingMatchers("verify()");
     verification =
         new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), order);
     lastInvocation = null;
-    MATCHERS.clear();
   }
 
   /** Arranges answers for the call that follows, without letting that call run. */
   public static void beginStubbing(Object mock, List<Answer<?>> answers) {
     MockState state = requireState(mock);
+    requireNoPendingMatchers("when(mock)");
     stubbing = new StubbingRequest(state, new ArrayList<>(answers));
     lastInvocation = null;
-    MATCHERS.clear();
   }
 
   public static boolean isMock(Object mock) {
@@ -233,9 +235,71 @@ public final class MockRuntime {
       request.order.check(state.mock(), pattern, request.mode);
       return;
     }
+    List<Invocation> matched = state.matching(pattern);
+    state.markVerified(matched);
     request.mode.verify(
         new VerificationContext(
-            state.count(pattern), state.invocationCount(), pattern.toString()));
+            matched.size(), state.invocationCount(), pattern.toString(), state.invocations()));
+  }
+
+  /**
+   * Rejects matchers that were registered but never consumed by a call on a mock.
+   *
+   * <p>A matcher passed to something that is not a mock would otherwise sit in the queue and be
+   * applied to the next mock call instead.
+   */
+  private static void requireNoPendingMatchers(String operation) {
+    if (MATCHERS.isEmpty()) {
+      return;
+    }
+    List<RegisteredMatcher> pending = new ArrayList<>(MATCHERS);
+    MATCHERS.clear();
+    throw new IllegalStateException(
+        operation + " found " + pending.size() + " argument matcher(s) left over: " + pending
+            + ". A matcher belongs inside a call on a mock, as in verify(mock).save(any()).");
+  }
+
+  /** Records that a verification accounted for these calls. */
+  public static void markVerified(Object mock, List<Invocation> matched) {
+    requireState(mock).markVerified(matched);
+  }
+
+  /** Fails when any call on these mocks has not been accounted for by a verification. */
+  public static void verifyNoMoreInteractions(Object... mocks) {
+    for (Object mock : mocks) {
+      List<Invocation> remaining = requireState(mock).unverified();
+      if (!remaining.isEmpty()) {
+        throw new AssertionError(
+            "Wanted no further calls, but observed " + remaining.get(0) + "."
+                + Failures.listOf(requireState(mock).invocations()));
+      }
+    }
+  }
+
+  /** Fails when anything at all was called on these mocks. */
+  public static void verifyNoInteractions(Object... mocks) {
+    for (Object mock : mocks) {
+      List<Invocation> recorded = requireState(mock).invocations();
+      if (!recorded.isEmpty()) {
+        throw new AssertionError(
+            "Wanted no calls at all, but observed " + recorded.get(0) + "."
+                + Failures.listOf(recorded));
+      }
+    }
+  }
+
+  /** Fails when a matcher was registered but never consumed. */
+  public static void validateUsage() {
+    requireNoPendingMatchers("validateUsage()");
+  }
+
+  /** Removes the most recently registered matcher, so a combining matcher can wrap it. */
+  public static RegisteredMatcher takeLastMatcher() {
+    if (MATCHERS.isEmpty()) {
+      throw new IllegalStateException(
+          "A combining matcher needs matchers to combine, as in and(gt(2), lt(9))");
+    }
+    return MATCHERS.remove(MATCHERS.size() - 1);
   }
 
   private static InvocationPattern consumePattern(String method, Object[] arguments) {

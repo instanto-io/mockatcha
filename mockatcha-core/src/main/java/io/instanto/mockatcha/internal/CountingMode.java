@@ -65,23 +65,17 @@ public final class CountingMode implements VerificationMode {
       case EXACT:
       case ONLY:
         if (actual != count) {
-          throw new AssertionError(
-              "Wanted " + count + " invocation(s) of " + context.description() + " but observed "
-                  + actual);
+          throw failure(context, "Wanted " + count + " invocation(s) of ", actual);
         }
         break;
       case AT_LEAST:
         if (actual < count) {
-          throw new AssertionError(
-              "Wanted at least " + count + " invocation(s) of " + context.description()
-                  + " but observed " + actual);
+          throw failure(context, "Wanted at least " + count + " invocation(s) of ", actual);
         }
         break;
       case AT_MOST:
         if (actual > count) {
-          throw new AssertionError(
-              "Wanted at most " + count + " invocation(s) of " + context.description()
-                  + " but observed " + actual);
+          throw failure(context, "Wanted at most " + count + " invocation(s) of ", actual);
         }
         break;
       default:
@@ -91,7 +85,14 @@ public final class CountingMode implements VerificationMode {
     if (kind == Kind.ONLY && context.totalCount() != 1) {
       throw new AssertionError(
           "Wanted " + context.description() + " to be the only call on this mock, but "
-              + (context.totalCount() - 1) + " other call(s) were recorded");
+              + (context.totalCount() - 1) + " other call(s) were recorded."
+              + Failures.listOf(context.recorded()));
     }
+  }
+
+  private static AssertionError failure(VerificationContext context, String wanted, int actual) {
+    return new AssertionError(
+        wanted + context.description() + " but observed " + actual + "."
+            + Failures.listOf(context.recorded()));
   }
 }

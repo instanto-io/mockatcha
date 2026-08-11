@@ -44,7 +44,8 @@ public final class InOrderImpl implements InOrder {
     List<Invocation> remaining = unverified();
     if (!remaining.isEmpty()) {
       throw new AssertionError(
-          "Wanted no further calls in this order, but observed " + remaining.get(0));
+          "Wanted no further calls in this order, but observed " + remaining.get(0) + "."
+              + Failures.listOf(remaining));
     }
   }
 
@@ -70,10 +71,13 @@ public final class InOrderImpl implements InOrder {
       }
     }
 
-    mode.verify(new VerificationContext(matched.size(), remaining.size(), pattern.toString()));
+    mode.verify(
+        new VerificationContext(
+            matched.size(), remaining.size(), pattern.toString(), remaining));
 
     if (!matched.isEmpty()) {
       cursor = matched.get(matched.size() - 1).sequence();
+      MockRuntime.markVerified(mock, matched);
     }
   }
 

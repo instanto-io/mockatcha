@@ -20,6 +20,10 @@ delivery sequence it described has been completed.
 | `ArgumentCaptor` | Done |
 | Verification: `times`, `never`, `atLeast`, `atLeastOnce`, `atMost`, `only` | Done |
 | `InOrder` verification, following Mockito's rules | Done |
+| `verifyNoMoreInteractions`, `verifyNoInteractions` | Done |
+| `AdditionalMatchers`: `and`, `or`, `not`, `gt`, `geq`, `lt`, `leq`, `cmpEq`, `aryEq`, `find` | Done |
+| Failure messages listing the calls that happened | Done |
+| Detection of matchers left over from a call on something that is not a mock | Done |
 | Call history: `mockingDetails`, `clearInvocations`, `reset` | Done |
 | Jasmine-shaped layer: name-based configuration, call inspection, fake clock, matchers including `objectContaining` | Done, in the `oolong` module |
 | Everything in [what to port next](#what-to-port-from-mockito-next) | Not started |
@@ -270,8 +274,6 @@ None of these need the generator to change. They are new behaviour in
 
 | Feature | Notes |
 | --- | --- |
-| `verifyNoInteractions`, `verifyNoMoreInteractions` | Needs an "already verified" flag on `Invocation` and a pass over the recorded list. |
-| `AdditionalMatchers`: `and`, `or`, `not`, `gt`, `lt`, `geq`, `leq`, `aryEq` | Thin wrappers over `argThat`. Cheap, and they compose with the matchers Oolong already added. |
 | `AdditionalAnswers`: `returnsFirstArg`, `returnsArgAt`, `returnsElementsOf` | A handful of `Answer` implementations. `delegatesTo` is already covered by `spy(Class, T)` on an interface. |
 | `BDDMockito`: `given` / `willReturn` / `then` / `should` | An alias layer over what exists. Worth it only if the team writes in that style. |
 | Mock naming, as in `withSettings().name(...)` | `MockState` already carries a description for `toString`; this only needs a way to set it. |
@@ -301,13 +303,11 @@ None of these need the generator to change. They are new behaviour in
 
 ### A reasonable next tranche
 
-`verifyNoMoreInteractions` outside an order, and `AdditionalMatchers`, need no
-generator changes and are what remains of the easy gap. Two richer items are
-worth considering next: failure messages that list the calls that did happen,
-and detection of matchers left over from a call on something that is not a mock.
+`AdditionalAnswers` and `BDDMockito` are what remains of the easy gap. Strict
+stubbing is the next item that needs a decision rather than only code.
 
-`ArgumentCaptor`, the verification modes, and `InOrder` are done. Three things
-learned while building them are worth keeping in mind for the rest:
+Four things learned while building the verification work are worth keeping in
+mind for the rest:
 
 - **`capture()` has to return a usable value.** It stands in for an argument, so
   for a primitive parameter it must return something that unboxes rather than
@@ -317,6 +317,11 @@ learned while building them are worth keeping in mind for the rest:
 - **A mode that needs more than a count needs more than an int.** `only()` has
   to know whether anything else was called, which is why `VerificationMode`
   gained a `VerificationContext` overload with a default implementation.
+- **A matcher standing in for a primitive needs a primitive overload.** The
+  same trap caught `ArgumentCaptor.capture()` and then `AdditionalMatchers.and`:
+  a generic method returning `T` hands back null, which fails to unbox at an
+  `int` parameter. Every matcher that wraps or captures rather than describing a
+  value needs one overload per primitive type.
 - **Ordered verification reads the mode back.** Mockito's in-order `times(n)`
   first looks at the run of matching calls that starts next, and falls back to
   every matching call when that run is a different size, so it needs the wanted
