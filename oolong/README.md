@@ -194,8 +194,10 @@ still waiting, which is a readable way to assert that nothing was scheduled.
 Two rules:
 
 - **install and uninstall inside one synchronous test.** Anything else that
-  schedules work meanwhile is queued rather than run, so an `@Async` test will
-  hang.
+  schedules work meanwhile is queued rather than run. That includes TeaVM's own
+  asynchronous support: code that suspends, such as `Thread.sleep`, resumes
+  through `setTimeout`, so it will wait for a `tick` that a stalled test never
+  reaches.
 - **uninstall in a `finally` block or an `@After` method,** so a failing
   assertion does not leave the clock installed for the tests that follow.
 
