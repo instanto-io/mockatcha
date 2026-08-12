@@ -13,6 +13,20 @@
   <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
   <url>https://github.com/cstainton/mockatcha</url>
 
+
+  <distributionManagement>
+    <repository>
+      <id>github-mockatcha</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/cstainton/mockatcha</url>
+    </repository>
+    <snapshotRepository>
+      <id>github-mockatcha</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/cstainton/mockatcha</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
