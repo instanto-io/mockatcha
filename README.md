@@ -16,7 +16,7 @@ verify(greetings).hello("Ada");
 ```
 
 This guide starts with the simplest possible test and adds one idea at a time.
-The companion library, [Oolong](oolong/README.md), adds a fake clock and a
+The companion library, [BDD](bdd/README.md), adds a fake clock and a
 second way of writing the same things.
 
 | | |
@@ -596,7 +596,7 @@ the record directly:
 List<Invocation> calls = mockingDetails(repository).getInvocations();
 ```
 
-Oolong offers a [more readable way](oolong/README.md#read-the-call-record) to do
+BDD offers a [more readable way](bdd/README.md#read-the-call-record) to do
 the same thing.
 
 ## Requirements
@@ -617,8 +617,8 @@ the test compiles, naming the type and the rule that applied.
 | Module | What it is |
 | --- | --- |
 | `mockatcha-core` | The library described above. Its one dependency is TeaVM's metaprogramming API. |
-| `oolong` | A [second vocabulary](oolong/README.md): configure by method name, read the call record, control the clock. |
-| `oolong-dom` | [Tests for code that renders](oolong-dom/README.md): a container per test, queries, events, and assertions. |
+| `bdd` | A [second vocabulary](bdd/README.md): configure by method name, read the call record, control the clock. |
+| `bdd-dom` | [Tests for code that renders](bdd-dom/README.md): a container per test, queries, events, and assertions. |
 | `mockatcha-examples` | Worked examples you can run. |
 | `teavm-rule-support` | A [fix for TeaVM's test runner](teavm-rule-support/README.md) so `@Rule` works, with the patch for upstream. Separate from Mockatcha. |
 
