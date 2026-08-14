@@ -153,11 +153,6 @@ final class Browser {
       params = {"element"},
       script =
           "function clean(value) { return (value || '').replace(/\\s+/g, ' ').trim(); }"
-              + "if (element.labels && element.labels.length) {"
-              + " var labels = Array.prototype.map.call(element.labels,"
-              + "  function(label) { return label.textContent; }).join(' ');"
-              + " if (clean(labels)) return clean(labels);"
-              + "}"
               + "var labelledBy = element.getAttribute('aria-labelledby');"
               + "if (labelledBy) {"
               + " var names = labelledBy.trim().split(/\\s+/).map(function(id) {"
@@ -166,7 +161,13 @@ final class Browser {
               + " if (clean(names)) return clean(names);"
               + "}"
               + "var aria = clean(element.getAttribute('aria-label'));"
-              + "return aria || null;")
+              + "if (aria) return aria;"
+              + "if (element.labels && element.labels.length) {"
+              + " var labels = Array.prototype.map.call(element.labels,"
+              + "  function(label) { return label.textContent; }).join(' ');"
+              + " if (clean(labels)) return clean(labels);"
+              + "}"
+              + "return null;")
   static native String labelText(HTMLElement element);
 
   /** Finds a form control by explicit/implicit label or ARIA labelling. */

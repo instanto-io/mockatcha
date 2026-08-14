@@ -339,12 +339,14 @@ public final class Dom {
     boolean hadValue = !Browser.value(element).isEmpty();
     Browser.setNativeValue(element, "");
     if (hadValue) Browser.dispatch(element, "input");
+    StringBuilder typed = new StringBuilder();
     for (int index = 0; index < text.length(); ) {
       int codePoint = text.codePointAt(index);
       String character = new String(Character.toChars(codePoint));
       index += Character.charCount(codePoint);
       if (Browser.beginTypingCharacter(element, character)) {
-        Browser.setNativeValue(element, Browser.value(element) + character);
+        typed.append(character);
+        Browser.setNativeValue(element, typed.toString());
         Browser.finishTypingCharacter(element, character);
       }
     }

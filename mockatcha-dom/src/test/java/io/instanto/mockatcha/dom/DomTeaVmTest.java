@@ -81,6 +81,13 @@ public class DomTeaVmTest {
   }
 
   @Test
+  public void ariaLabelOverridesTextFromAWrappingLabel() {
+    render("<label>Sat<input id='hours' aria-label='OPS-142 2026-07-18'></label>");
+
+    expect(findByLabelText("OPS-142 2026-07-18")).toHaveAttribute("id", "hours");
+  }
+
+  @Test
   public void findsAnElementByTestIdWithoutTreatingItAsCss() {
     render("<section data-testid='account:17'>details</section>");
 

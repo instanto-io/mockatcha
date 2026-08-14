@@ -75,6 +75,15 @@ public class EventsTeaVmTest {
   }
 
   @Test
+  public void typingKeepsTheFullDecimalValueInANumberInput() {
+    render("<input id='hours' type='number'>");
+
+    type(find("#hours"), "1.5");
+
+    expect(find("#hours")).toHaveValue("1.5");
+  }
+
+  @Test
   public void cancellingBeforeInputPreventsTheEditButStillReleasesTheKey() {
     render("<input id='term'>");
     find("#term").addEventListener("beforeinput", (EventListener<Event>) Event::preventDefault);
