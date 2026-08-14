@@ -12,6 +12,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /** Runtime called by TeaVM-generated mock implementations. */
 public final class MockRuntime {
@@ -27,6 +28,7 @@ public final class MockRuntime {
   private static StubbingRequest stubbing;
   private static boolean nextStubIsLenient;
   private static boolean strictStubs;
+  private static SessionContext session;
 
   private MockRuntime() {}
 
@@ -35,9 +37,22 @@ public final class MockRuntime {
     return new MockState(description);
   }
 
+  /** Validates a user-supplied mock name while retaining the generated type in the description. */
+  public static String requireMockName(String name, String kind) {
+    Objects.requireNonNull(name, "name");
+    if (name.trim().isEmpty()) {
+      throw new IllegalArgumentException("A mock name must not be blank");
+    }
+    return name + " (" + kind + ")";
+  }
+
   /** Answers {@code toString} on a generated mock or spy. */
   public static String describe(MockState state) {
     return state.description();
+  }
+
+  static String descriptionOf(Object mock) {
+    return requireState(mock).description();
   }
 
   /**
@@ -105,7 +120,58 @@ public final class MockRuntime {
     Objects.requireNonNull(state, "state");
     state.attach(mock);
     STATES.put(mock, state);
-    UNCHECKED_MOCKS.add(mock);
+    if (session == null) {
+      UNCHECKED_MOCKS.add(mock);
+    } else {
+      session.mocks.add(mock);
+    }
+  }
+
+  /** Starts a non-nestable lifecycle, adopting fixture mocks created before test setup ran. */
+  public static Object openSession(boolean strict) {
+    if (session != null) {
+      throw new IllegalStateException("Mockatcha sessions cannot be nested");
+    }
+    Object token = new Object();
+    SessionContext opened = new SessionContext(token, strictStubs);
+    opened.mocks.addAll(UNCHECKED_MOCKS);
+    UNCHECKED_MOCKS.clear();
+    session = opened;
+    strictStubs = strict;
+    return token;
+  }
+
+  /** Validates and releases every mock owned by a lifecycle, even when validation fails. */
+  public static void closeSession(Object token) {
+    SessionContext closing = session;
+    if (closing == null || closing.token != token) {
+      throw new IllegalStateException("This Mockatcha session is not active");
+    }
+    session = null;
+    strictStubs = closing.previousStrictStubs;
+
+    Throwable failure = null;
+    try {
+      validateStubbing(closing.mocks.toArray());
+    } catch (Throwable thrown) {
+      failure = thrown;
+    }
+    try {
+      validateUsage();
+    } catch (Throwable thrown) {
+      failure = combine(failure, thrown);
+    } finally {
+      for (Object mock : closing.mocks) {
+        MockState state = STATES.remove(mock);
+        if (state != null) {
+          state.release();
+        }
+      }
+    }
+
+    if (failure != null) {
+      sneakyThrow(failure);
+    }
   }
 
   /** Rejects a spy created without a delegate. */
@@ -120,6 +186,17 @@ public final class MockRuntime {
   public static void registerMatcher(ArgumentMatcher<?> matcher, String description) {
     MATCHERS.add(
         new RegisteredMatcher((ArgumentMatcher<Object>) matcher, description));
+  }
+
+  /** Registers a matcher whose side effect is committed only after the whole invocation matches. */
+  @SuppressWarnings("unchecked")
+  public static void registerMatcher(
+      ArgumentMatcher<?> matcher, String description, Consumer<Object> onMatch) {
+    MATCHERS.add(
+        new RegisteredMatcher(
+            (ArgumentMatcher<Object>) matcher,
+            description,
+            Objects.requireNonNull(onMatch, "onMatch")));
   }
 
   public static Object invokeObject(MockState state, String method, Object[] arguments) {
@@ -262,6 +339,7 @@ public final class MockRuntime {
   }
 
   private static Object dispatch(MockState state, String method, Object[] arguments) {
+    state.requireActive();
     InvocationPattern pattern = consumePattern(method, arguments);
 
     if (stubbing != null) {
@@ -309,10 +387,20 @@ public final class MockRuntime {
       return;
     }
     List<Invocation> matched = state.matching(pattern);
-    state.markVerified(matched);
     request.mode.verify(
         new VerificationContext(
-            matched.size(), state.invocationCount(), pattern.toString(), state.invocations()));
+            matched.size(),
+            state.invocationCount(),
+            state.description() + ": " + pattern,
+            state.invocations()));
+    capture(pattern, matched);
+    state.markVerified(matched);
+  }
+
+  static void capture(InvocationPattern pattern, List<Invocation> invocations) {
+    for (Invocation invocation : invocations) {
+      pattern.capture(invocation.arguments().toArray());
+    }
   }
 
   /**
@@ -343,7 +431,8 @@ public final class MockRuntime {
       List<Invocation> remaining = requireState(mock).unverified();
       if (!remaining.isEmpty()) {
         throw new AssertionError(
-            "Wanted no further calls, but observed " + remaining.get(0) + "."
+            stateDescription(mock) + ": wanted no further calls, but observed "
+                + remaining.get(0) + "."
                 + Failures.listOf(requireState(mock).invocations()));
       }
     }
@@ -355,7 +444,8 @@ public final class MockRuntime {
       List<Invocation> recorded = requireState(mock).invocations();
       if (!recorded.isEmpty()) {
         throw new AssertionError(
-            "Wanted no calls at all, but observed " + recorded.get(0) + "."
+            stateDescription(mock) + ": wanted no calls at all, but observed "
+                + recorded.get(0) + "."
                 + Failures.listOf(recorded));
       }
     }
@@ -363,7 +453,31 @@ public final class MockRuntime {
 
   /** Fails when a matcher was registered but never consumed. */
   public static void validateUsage() {
-    requireNoPendingMatchers("validateUsage()");
+    List<String> unfinished = new ArrayList<>();
+    if (!MATCHERS.isEmpty()) {
+      unfinished.add(MATCHERS.size() + " argument matcher(s) left over: " + MATCHERS);
+    }
+    if (verification != null) {
+      unfinished.add("verify(mock) was not followed by a method call");
+    }
+    if (stubbing != null) {
+      unfinished.add("when(mock) was not followed by a method call");
+    }
+    if (nextStubIsLenient) {
+      unfinished.add("lenient() was not followed by when(mock.method())");
+    }
+
+    MATCHERS.clear();
+    verification = null;
+    stubbing = null;
+    nextStubIsLenient = false;
+    lastInvocation = null;
+
+    if (!unfinished.isEmpty()) {
+      throw new IllegalStateException(
+          "validateUsage() found unfinished Mockatcha operations: " + unfinished
+              + ". Complete each operation in the test where it begins.");
+    }
   }
 
   /**
@@ -387,7 +501,11 @@ public final class MockRuntime {
       if (state == null) {
         throw new IllegalArgumentException("Object is not a Mockatcha mock");
       }
-      for (Stub unused : state.unusedStubs()) {
+      List<Stub> unusedStubs = state.unusedStubs();
+      if (!unusedStubs.isEmpty()) {
+        report.append("\n").append(state.description()).append(":");
+      }
+      for (Stub unused : unusedStubs) {
         report.append("\n  ").append(unused.pattern());
         List<Invocation> nearby = state.invocationsOf(unused.pattern().methodName());
         if (nearby.isEmpty()) {
@@ -484,6 +602,29 @@ public final class MockRuntime {
       throw new IllegalArgumentException("Object is not a Mockatcha mock");
     }
     return state;
+  }
+
+  private static String stateDescription(Object mock) {
+    return requireState(mock).description();
+  }
+
+  private static Throwable combine(Throwable primary, Throwable additional) {
+    if (primary == null) {
+      return additional;
+    }
+    primary.addSuppressed(additional);
+    return primary;
+  }
+
+  private static final class SessionContext {
+    private final Object token;
+    private final boolean previousStrictStubs;
+    private final List<Object> mocks = new ArrayList<>();
+
+    private SessionContext(Object token, boolean previousStrictStubs) {
+      this.token = token;
+      this.previousStrictStubs = previousStrictStubs;
+    }
   }
 
   private static final class LastInvocation {

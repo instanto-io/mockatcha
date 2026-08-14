@@ -40,6 +40,10 @@ public final class Mockatcha {
   @Meta
   public static native <T> T mock(Class<T> type);
 
+  /** Generates a mock whose name is used in diagnostics. */
+  @Meta
+  public static native <T> T mock(Class<T> type, String name);
+
   /**
    * Generates a spy that records calls and hands unstubbed ones to {@code delegate}.
    *
@@ -48,6 +52,26 @@ public final class Mockatcha {
    */
   @Meta
   public static native <T> T spy(Class<T> type, T delegate);
+
+  /** Generates a named spy whose name is used in diagnostics. */
+  @Meta
+  public static native <T> T spy(Class<T> type, T delegate, String name);
+
+  /**
+   * Opens a framework-neutral lifecycle that validates and releases its mocks.
+   *
+   * <p>Intended for custom or non-JUnit harnesses. JUnit tests should normally use
+   * {@link MockatchaRule}. Makes unused-stub checks on close without enabling fail-fast strict
+   * stubbing.
+   */
+  public static MockatchaSession session() {
+    return session(false);
+  }
+
+  /** Opens a lifecycle, optionally failing immediately when a call narrowly misses a stub. */
+  public static MockatchaSession session(boolean strictStubs) {
+    return new MockatchaSession(strictStubs);
+  }
 
   /** Begins configuration of the most recently evaluated mock invocation. */
   public static <T> OngoingStubbing<T> when(T ignored) {
@@ -137,7 +161,7 @@ public final class Mockatcha {
     MockRuntime.verifyNoMoreInteractions(mocks);
   }
 
-  /** Expects these mocks to have been called at all. */
+  /** Expects these mocks not to have been called at all. */
   public static void verifyNoInteractions(Object... mocks) {
     MockRuntime.verifyNoInteractions(mocks);
   }
@@ -156,7 +180,8 @@ public final class Mockatcha {
   /**
    * Fails a call that found no arranged answer while the same method has one that did not match.
    *
-   * <p>Off by default. {@link StrictTest} turns it on for the tests that extend it.
+   * <p>Off by default. {@link MockatchaRule}, {@link StrictTest}, and a strict
+   * {@link MockatchaSession} turn it on for their test lifecycle.
    */
   public static void strictStubs(boolean strict) {
     MockRuntime.strictStubs(strict);
@@ -185,32 +210,44 @@ public final class Mockatcha {
     MockRuntime.validateUsage();
   }
 
+  /** Returns read-only details about a mock or spy. */
   public static MockingDetails mockingDetails(Object mock) {
     return new MockingDetails(mock);
   }
 
+  /** Forgets recorded calls while preserving stubs. */
   public static void clearInvocations(Object mock) {
     MockRuntime.clearInvocations(mock);
   }
 
+  /** Forgets recorded calls and stubs. */
   public static void reset(Object mock) {
     MockRuntime.reset(mock);
   }
 
   private static <T> void mock(IntrospectClass<T> type) {
-    generate(type, null);
+    generate(type, null, defaultDescription(type, false));
+  }
+
+  private static <T> void mock(IntrospectClass<T> type, Value<String> name) {
+    generate(type, null, namedDescription(type, name, false));
   }
 
   private static <T> void spy(IntrospectClass<T> type, Value<T> delegate) {
     emit(() -> MockRuntime.requireDelegate(delegate.get()));
-    generate(type, delegate);
+    generate(type, delegate, defaultDescription(type, true));
+  }
+
+  private static <T> void spy(
+      IntrospectClass<T> type, Value<T> delegate, Value<String> name) {
+    emit(() -> MockRuntime.requireDelegate(delegate.get()));
+    generate(type, delegate, namedDescription(type, name, true));
   }
 
   /** Emits the mock or spy for one call site. */
-  private static <T> void generate(IntrospectClass<T> type, Value<T> delegate) {
-    String description =
-        (delegate == null ? "Mockatcha mock of " : "Mockatcha spy of ") + type.name();
-    Value<MockState> state = emit(() -> MockRuntime.createState(description));
+  private static <T> void generate(
+      IntrospectClass<T> type, Value<T> delegate, Value<String> description) {
+    Value<MockState> state = emit(() -> MockRuntime.createState(description.get()));
 
     Value<T> generated =
         type.isInterface()
@@ -223,6 +260,17 @@ public final class Mockatcha {
 
     emit(() -> MockRuntime.register(generated.get(), state.get()));
     exit(() -> generated.get());
+  }
+
+  private static Value<String> defaultDescription(IntrospectClass<?> type, boolean spy) {
+    String description = (spy ? "Mockatcha spy of " : "Mockatcha mock of ") + type.name();
+    return emit(() -> description);
+  }
+
+  private static Value<String> namedDescription(
+      IntrospectClass<?> type, Value<String> name, boolean spy) {
+    String kind = (spy ? "Mockatcha spy of " : "Mockatcha mock of ") + type.name();
+    return emit(() -> MockRuntime.requireMockName(name.get(), kind));
   }
 
   private static <T> Value<T> proxyInterface(

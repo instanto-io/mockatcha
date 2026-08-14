@@ -17,6 +17,12 @@ public final class ArgumentMatchers {
     return argThat(argument -> true, "any()");
   }
 
+  /** Matches a non-null value assignable to this type. */
+  public static <T> T any(Class<T> type) {
+    Objects.requireNonNull(type, "type");
+    return argThat(type::isInstance, "any(" + type.getName() + ".class)");
+  }
+
   public static boolean anyBoolean() {
     argThat(argument -> argument instanceof Boolean, "anyBoolean()");
     return false;
@@ -61,6 +67,14 @@ public final class ArgumentMatchers {
     return argThat(argument -> argument instanceof String, "anyString()");
   }
 
+  /** Matches either null or a value assignable to this type. */
+  public static <T> T nullable(Class<T> type) {
+    Objects.requireNonNull(type, "type");
+    return argThat(
+        argument -> argument == null || type.isInstance(argument),
+        "nullable(" + type.getName() + ".class)");
+  }
+
   public static <T> T isNull() {
     return argThat(Objects::isNull, "isNull()");
   }
@@ -72,6 +86,27 @@ public final class ArgumentMatchers {
   public static <T> T eq(T expected) {
     argThat(argument -> Objects.equals(expected, argument), "eq(" + expected + ")");
     return expected;
+  }
+
+  /** Matches the same object by identity rather than by {@code equals}. */
+  public static <T> T same(T expected) {
+    return argThat(argument -> argument == expected, "same(" + expected + ")");
+  }
+
+  /** Matches a non-null string beginning with this prefix. */
+  public static String startsWith(String prefix) {
+    Objects.requireNonNull(prefix, "prefix");
+    return argThat(
+        argument -> argument instanceof String && ((String) argument).startsWith(prefix),
+        "startsWith(\"" + prefix + "\")");
+  }
+
+  /** Matches a non-null string ending with this suffix. */
+  public static String endsWith(String suffix) {
+    Objects.requireNonNull(suffix, "suffix");
+    return argThat(
+        argument -> argument instanceof String && ((String) argument).endsWith(suffix),
+        "endsWith(\"" + suffix + "\")");
   }
 
   /** Matches an argument with a condition of your own, which is reported as {@code argThat(...)}. */

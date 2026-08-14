@@ -5,7 +5,7 @@ import io.instanto.mockatcha.internal.BDDStubberImpl;
 import io.instanto.mockatcha.internal.MockRuntime;
 
 /**
- * The same mocking, spelled the way a given-when-then test reads.
+ * Given-and-then aliases for Mockatcha stubbing and verification.
  *
  * <pre>{@code
  * // given
@@ -84,7 +84,7 @@ public final class BDDMockatcha {
       return order.verify(mock, mode);
     }
 
-    /** Expects this mock to have been called at all. */
+    /** Expects this mock not to have been called at all. */
     public void shouldHaveNoInteractions() {
       Mockatcha.verifyNoInteractions(mock);
     }

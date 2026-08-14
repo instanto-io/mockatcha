@@ -10,9 +10,8 @@
   <packaging>pom</packaging>
 
   <name>Mockatcha</name>
-  <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
+  <description>Mocking, browser helpers, and DOM testing for Java code compiled with TeaVM.</description>
   <url>https://github.com/cstainton/mockatcha</url>
-
 
   <distributionManagement>
     <repository>
@@ -32,12 +31,13 @@
     <maven.compiler.release>21</maven.compiler.release>
     <teavm.version>0.15.0</teavm.version>
     <junit.version>4.13.2</junit.version>
+    <mockatcha.test.browser>browser-chrome</mockatcha.test.browser>
   </properties>
 
   <modules>
     <module>mockatcha-core</module>
-    <module>bdd</module>
-    <module>bdd-dom</module>
+    <module>mockatcha-bdd</module>
+    <module>mockatcha-dom</module>
     <module>mockatcha-examples</module>
     <module>teavm-rule-support</module>
   </modules>
@@ -106,6 +106,14 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.6.0-M1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.12.0</version>
+        <configuration>
+          <doclint>all,-missing</doclint>
+        </configuration>
       </plugin>
     </plugins>
   </build>

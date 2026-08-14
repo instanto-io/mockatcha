@@ -58,6 +58,16 @@ final class InvocationPattern {
     return true;
   }
 
+  /** Commits side effects such as argument capture after the whole invocation has matched. */
+  void capture(Object[] arguments) {
+    if (this.arguments == null) {
+      return;
+    }
+    for (int index = 0; index < arguments.length; index++) {
+      this.arguments.get(index).capture(arguments[index]);
+    }
+  }
+
   private boolean matchesMethod(String method) {
     if (!byName) {
       return this.method.equals(method);

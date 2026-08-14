@@ -14,8 +14,6 @@ import java.util.Objects;
  * when(clock.next()).thenAnswer(returnsElementsOf(List.of(1, 2, 3)));
  * when(names.of(anyString())).thenAnswer(answer((String id) -> id.toUpperCase()));
  * }</pre>
- *
- * <p>A spy created with {@code spy(Class, T)} covers what Mockito's {@code delegatesTo} does.
  */
 public final class AdditionalAnswers {
 

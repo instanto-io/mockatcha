@@ -12,10 +12,12 @@ public final class MockingDetails {
     this.mock = mock;
   }
 
+  /** Whether the inspected object is a Mockatcha mock or spy. */
   public boolean isMock() {
     return MockRuntime.isMock(mock);
   }
 
+  /** A read-only snapshot of its calls, oldest first. */
   public List<Invocation> getInvocations() {
     return MockRuntime.invocations(mock);
   }

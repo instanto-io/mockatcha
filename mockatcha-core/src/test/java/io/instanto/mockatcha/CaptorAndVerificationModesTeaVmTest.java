@@ -66,6 +66,18 @@ public class CaptorAndVerificationModesTeaVmTest {
   }
 
   @Test
+  public void doesNotCaptureACallRejectedByALaterMatcher() {
+    Repository repository = mock(Repository.class);
+    ArgumentCaptor<String> employee = ArgumentCaptor.forClass(String.class);
+    repository.audit("not wanted", "draft");
+    repository.audit("A-17", "submitted");
+
+    verify(repository).audit(employee.capture(), eq("submitted"));
+
+    assertEquals(List.of("A-17"), employee.getAllValues());
+  }
+
+  @Test
   public void capturesAnArgumentOfAPrimitiveParameter() {
     Repository repository = mock(Repository.class);
     ArgumentCaptor<Integer> hours = ArgumentCaptor.forClass(int.class);

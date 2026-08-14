@@ -70,14 +70,23 @@ final class TestEntryPoint {
         @Override
         public void evaluate() throws Throwable {
             before();
+            Throwable failure = null;
             try {
                 launcher.launch(testCase);
-            } finally {
-                try {
-                    after();
-                } catch (Throwable e) {
-                    e.printStackTrace();
+            } catch (Throwable e) {
+                failure = e;
+            }
+            try {
+                after();
+            } catch (Throwable e) {
+                if (failure == null) {
+                    failure = e;
+                } else {
+                    failure.addSuppressed(e);
                 }
+            }
+            if (failure != null) {
+                throw failure;
             }
         }
     }

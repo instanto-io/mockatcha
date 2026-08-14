@@ -1,9 +1,9 @@
 diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
 new file mode 100644
-index 0000000..ead7943
+index 0000000..942dba5
 --- /dev/null
 +++ b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TConcurrentLinkedQueue.java
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,73 @@
 +/*
 + *  Copyright 2026 Carl Stainton.
 + *
@@ -29,12 +29,15 @@ index 0000000..ead7943
 +import org.teavm.classlib.java.util.TIterator;
 +import org.teavm.classlib.java.util.TQueue;
 +
++/** Single-threaded TeaVM classlib implementation of {@code ConcurrentLinkedQueue}. */
 +public class TConcurrentLinkedQueue<E> extends TAbstractQueue<E> implements TQueue<E>, TSerializable {
 +    private final TArrayDeque<E> elements = new TArrayDeque<>();
 +
++    /** Creates an empty queue. */
 +    public TConcurrentLinkedQueue() {
 +    }
 +
++    /** Creates a queue containing the supplied elements in iteration order. */
 +    public TConcurrentLinkedQueue(TCollection<? extends E> c) {
 +        for (TIterator<? extends E> iterator = c.iterator(); iterator.hasNext();) {
 +            offer(iterator.next());
@@ -327,7 +330,7 @@ index 6243594..854d9e8 100644
      public static void main(String[] args) throws Throwable {
          run(args.length == 1 ? args[0] : null);
      }
-@@ -57,4 +59,26 @@ final class TestEntryPoint {
+@@ -57,4 +59,35 @@ final class TestEntryPoint {
      interface Launcher {
          void launch(Object testCase) throws Throwable;
      }
@@ -342,14 +345,23 @@ index 6243594..854d9e8 100644
 +        @Override
 +        public void evaluate() throws Throwable {
 +            before();
++            Throwable failure = null;
 +            try {
 +                launcher.launch(testCase);
-+            } finally {
-+                try {
-+                    after();
-+                } catch (Throwable e) {
-+                    e.printStackTrace();
++            } catch (Throwable e) {
++                failure = e;
++            }
++            try {
++                after();
++            } catch (Throwable e) {
++                if (failure == null) {
++                    failure = e;
++                } else {
++                    failure.addSuppressed(e);
 +                }
++            }
++            if (failure != null) {
++                throw failure;
 +            }
 +        }
 +    }

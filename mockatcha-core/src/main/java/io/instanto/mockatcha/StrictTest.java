@@ -4,7 +4,7 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * A base class for tests that should fail on unused stubs and misplaced matchers.
+ * Compatibility base class for TeaVM runners that do not execute {@link MockatchaRule}.
  *
  * <pre>{@code
  * @RunWith(TeaVMTestRunner.class)
@@ -14,38 +14,24 @@ import org.junit.Before;
  * }
  * }</pre>
  *
- * <p>Extending this is the way to get the checks automatically: TeaVM's test runner collects
- * {@code @Before} and {@code @After} methods from superclasses, and does not run JUnit rules.
- * Calling {@link Mockatcha#validateStubbing} and {@link Mockatcha#validateUsage} directly does the
- * same for one test.
+ * <p>This is a Mockatcha fallback, not a TeaVM or JUnit API. Use it only when the runner cannot use
+ * Mockatcha's reusable TeaVM rule support. It opens the same {@link MockatchaSession} through
+ * inherited {@code @Before} and {@code @After} methods. Do not combine it with
+ * {@link MockatchaRule}.
  */
 public abstract class StrictTest {
 
+  private MockatchaSession session;
+
   @Before
   public void failOnCallsThatMissTheirStub() {
-    Mockatcha.strictStubs(true);
+    session = Mockatcha.session(true);
   }
 
   @After
   public void checkMockatchaUsage() {
-    Mockatcha.strictStubs(false);
-    AssertionError unusedStubs = null;
-    try {
-      Mockatcha.validateStubbing();
-    } catch (AssertionError failure) {
-      unusedStubs = failure;
-    }
-
-    try {
-      Mockatcha.validateUsage();
-    } catch (IllegalStateException misplacedMatchers) {
-      if (unusedStubs == null) {
-        throw misplacedMatchers;
-      }
-    }
-
-    if (unusedStubs != null) {
-      throw unusedStubs;
+    if (session != null) {
+      session.close();
     }
   }
 }

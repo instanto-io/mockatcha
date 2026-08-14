@@ -21,6 +21,7 @@ public final class Invocation {
     this.arguments = Objects.requireNonNull(arguments, "arguments").clone();
   }
 
+  /** The mock or spy that received this call. */
   public Object mock() {
     return mock;
   }
@@ -35,19 +36,23 @@ public final class Invocation {
     return method;
   }
 
+  /** The method name without parameter types. */
   public String methodName() {
     int parameters = method.indexOf('(');
     return parameters < 0 ? method : method.substring(0, parameters);
   }
 
+  /** The call's arguments in declaration order. */
   public List<Object> arguments() {
     return Collections.unmodifiableList(Arrays.asList(arguments.clone()));
   }
 
+  /** One argument, counting from zero. */
   public Object argument(int index) {
     return arguments[index];
   }
 
+  /** The number of arguments in this call. */
   public int argumentCount() {
     return arguments.length;
   }

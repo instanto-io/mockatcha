@@ -210,12 +210,31 @@ public final class SubclassGenerator {
     int argumentsSlot = nextSlot++;
     int resultSlot = nextSlot++;
 
-    visitor.visitIntInsn(Opcodes.BIPUSH, parameters.size());
+    // The superclass constructor runs before this subclass's fields can be assigned. If it calls
+    // an overridable method, preserve normal construction behaviour instead of dispatching with a
+    // null MockState. An abstract hook has no implementation to call, so it receives an empty value.
+    Label stateReady = new Label();
+    visitor.visitVarInsn(Opcodes.ALOAD, 0);
+    visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
+    visitor.visitJumpInsn(Opcodes.IFNONNULL, stateReady);
+    if (Modifier.isAbstract(method.modifiers())) {
+      emitEmptyAnswer(visitor, method.returnType());
+    } else {
+      visitor.visitVarInsn(Opcodes.ALOAD, 0);
+      for (int index = 0; index < parameters.size(); index++) {
+        visitor.visitVarInsn(loadOpcode(parameters.get(index).type()), slots[index]);
+      }
+      visitor.visitMethodInsn(Opcodes.INVOKESPECIAL, target, method.name(), descriptor, false);
+      visitor.visitInsn(returnOpcode(method.returnType()));
+    }
+    visitor.visitLabel(stateReady);
+
+    visitor.visitLdcInsn(parameters.size());
     visitor.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
     for (int index = 0; index < parameters.size(); index++) {
       IntrospectClass<?> parameterType = parameters.get(index).type();
       visitor.visitInsn(Opcodes.DUP);
-      visitor.visitIntInsn(Opcodes.BIPUSH, index);
+      visitor.visitLdcInsn(index);
       visitor.visitVarInsn(loadOpcode(parameterType), slots[index]);
       box(visitor, parameterType);
       visitor.visitInsn(Opcodes.AASTORE);
@@ -287,6 +306,43 @@ public final class SubclassGenerator {
           false);
     }
     visitor.visitInsn(returnOpcode(returnType));
+  }
+
+  private static void emitEmptyAnswer(MethodVisitor visitor, IntrospectClass<?> returnType) {
+    if (returnType.isArray()) {
+      visitor.visitInsn(Opcodes.ACONST_NULL);
+      visitor.visitInsn(Opcodes.ARETURN);
+      return;
+    }
+    switch (returnType.name()) {
+      case "void":
+        visitor.visitInsn(Opcodes.RETURN);
+        break;
+      case "boolean":
+      case "byte":
+      case "short":
+      case "char":
+      case "int":
+        visitor.visitInsn(Opcodes.ICONST_0);
+        visitor.visitInsn(Opcodes.IRETURN);
+        break;
+      case "long":
+        visitor.visitInsn(Opcodes.LCONST_0);
+        visitor.visitInsn(Opcodes.LRETURN);
+        break;
+      case "float":
+        visitor.visitInsn(Opcodes.FCONST_0);
+        visitor.visitInsn(Opcodes.FRETURN);
+        break;
+      case "double":
+        visitor.visitInsn(Opcodes.DCONST_0);
+        visitor.visitInsn(Opcodes.DRETURN);
+        break;
+      default:
+        visitor.visitInsn(Opcodes.ACONST_NULL);
+        visitor.visitInsn(Opcodes.ARETURN);
+        break;
+    }
   }
 
   /**

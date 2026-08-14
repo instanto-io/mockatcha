@@ -15,6 +15,7 @@ public final class MockState {
   private final List<Invocation> invocations = new ArrayList<>();
   private final List<Stub> stubs = new ArrayList<>();
   private final Set<Integer> verified = new HashSet<>();
+  private boolean active = true;
 
   MockState(String description) {
     this.description = description;
@@ -30,6 +31,18 @@ public final class MockState {
 
   String description() {
     return description;
+  }
+
+  void requireActive() {
+    if (!active) {
+      throw new IllegalStateException(description + " belongs to a closed Mockatcha session");
+    }
+  }
+
+  void release() {
+    reset();
+    mock = null;
+    active = false;
   }
 
   void record(Invocation invocation) {
@@ -90,6 +103,7 @@ public final class MockState {
     for (int index = stubs.size() - 1; index >= 0; index--) {
       Stub stub = stubs.get(index);
       if (stub.pattern().matches(method, arguments)) {
+        stub.pattern().capture(arguments);
         stub.markUsed();
         return stub;
       }

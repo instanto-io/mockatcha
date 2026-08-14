@@ -12,8 +12,7 @@
 
   <artifactId>teavm-rule-support</artifactId>
   <name>TeaVM rule support</name>
-  <description>A working demonstration of JUnit rule support for TeaVM's test runner.</description>
-
+  <description>JUnit TestRule support for TeaVM's test runner.</description>
 
   <dependencies>
     <dependency>
@@ -51,7 +50,7 @@
         <configuration>
           <systemPropertyVariables>
             <teavm.junit.target>${project.build.directory}/js-tests</teavm.junit.target>
-            <teavm.junit.js.runner>browser-chrome</teavm.junit.js.runner>
+            <teavm.junit.js.runner>${mockatcha.test.browser}</teavm.junit.js.runner>
           </systemPropertyVariables>
         </configuration>
       </plugin>

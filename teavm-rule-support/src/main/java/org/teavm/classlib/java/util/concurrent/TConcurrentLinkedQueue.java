@@ -23,12 +23,15 @@ import org.teavm.classlib.java.util.TCollection;
 import org.teavm.classlib.java.util.TIterator;
 import org.teavm.classlib.java.util.TQueue;
 
+/** Single-threaded TeaVM classlib implementation of {@code ConcurrentLinkedQueue}. */
 public class TConcurrentLinkedQueue<E> extends TAbstractQueue<E> implements TQueue<E>, TSerializable {
     private final TArrayDeque<E> elements = new TArrayDeque<>();
 
+    /** Creates an empty queue. */
     public TConcurrentLinkedQueue() {
     }
 
+    /** Creates a queue containing the supplied elements in iteration order. */
     public TConcurrentLinkedQueue(TCollection<? extends E> c) {
         for (TIterator<? extends E> iterator = c.iterator(); iterator.hasNext();) {
             offer(iterator.next());

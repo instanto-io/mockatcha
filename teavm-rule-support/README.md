@@ -10,10 +10,19 @@ a rule silently does nothing in a browser test. This module is a working fix,
 running in Chrome, and [`teavm-junit-rules.patch`](teavm-junit-rules.patch) is
 the same change against `teavm` at tag 0.15.0.
 
-Nothing here is part of Mockatcha. The classes under `org/teavm/junit` and
-`org/teavm/classlib` are copies that shadow the ones in the TeaVM jars, because
-test classes come before dependencies on the classpath. That makes the patch
-testable without building TeaVM.
+Mockatcha ships and uses this module so that `MockatchaRule` can be its preferred
+test lifecycle. Any TeaVM/JUnit project can put it ahead of `teavm-junit` and
+use ordinary JUnit `TestRule` fields and no-argument rule methods.
+
+`StrictTest` is Mockatcha's inheritance-based compatibility fallback for a
+consumer that cannot install this rule support; it is not part of TeaVM or
+JUnit. `MockatchaSession` is the framework-neutral lifecycle underneath both
+Mockatcha adapters and is intended for custom or non-JUnit harnesses.
+
+The implementation does not depend on Mockatcha. The classes under
+`org/teavm/junit` and `org/teavm/classlib` shadow the ones in the TeaVM jars,
+because test classes come before dependencies on the classpath. This keeps the
+support independently reusable and testable without building TeaVM.
 
 ## What the change does
 
@@ -32,9 +41,9 @@ static Statement applyRules(Statement base, String name) {
 }
 ```
 
-The fields are read directly, so nothing needs reflection at runtime. When the
-test class declares no rules the generated body returns its argument, which
-costs a compiled program and nothing else.
+Rule fields are read and rule methods are called directly, so runtime reflection
+is not needed. When a test declares no rules, the generated body returns its
+argument unchanged.
 
 `TestEntryPoint.run` then wraps each launcher in a `Statement` and hands it to
 the rules:
@@ -45,8 +54,10 @@ for (Launcher launcher : launchers) {
 }
 ```
 
-`LaunchStatement.evaluate` runs `before()`, the test, and `after()`, so rules
-sit outside the `@Before` and `@After` methods, as they do in JUnit.
+`LaunchStatement.evaluate` runs `before()`, the test, and `after()`, placing the
+rules outside the `@Before` and `@After` methods as JUnit does. Teardown is
+always attempted. If it fails, its exception is thrown when the test body
+passed, or suppressed by the existing test failure when the body failed too.
 
 ## The classlib addition
 
@@ -67,12 +78,10 @@ the same wall today.
 
 ## Ordering
 
-Rules are applied in declaration order, each wrapping the previous, so the last
-field declared is the outermost. That matches what JUnit's own `RunRules` does
-with the list it is given. Superclass rules are applied before subclass rules.
-
-JUnit 4.13's `@Rule(order = ...)` is not read yet; supporting it means sorting
-the collected fields before emitting the chain.
+Following JUnit's `RuleContainer`, rules with a higher `order` are applied first
+and therefore end up inner. Where the order is equal, rule methods are applied
+before rule fields. Within either group, declaration order is preserved with
+superclasses first.
 
 ## What is left for a MethodRule
 
@@ -80,18 +89,17 @@ A `MethodRule` receives a `FrameworkMethod`, which wraps
 `java.lang.reflect.Method`, and JUnit rejects a null one in its constructor.
 TeaVM can produce a `Method` only for a method annotated `@Reflectable`.
 
-That makes `MethodRule` reachable rather than impossible: the transformer
-already visits the test class and could add `@Reflectable` to its test methods,
-then emit `new FrameworkMethod(testClass.getDeclaredMethod(name))`. It is more
-machinery than `TestRule` needed, for the older of the two interfaces, so this
-change reports a clear error instead:
+Supporting it would require the transformer to add `@Reflectable` to each test
+method and construct a `FrameworkMethod` from
+`testClass.getDeclaredMethod(name)`. This patch supports the newer `TestRule`
+interface and reports a clear error for `MethodRule` instead:
 
 ```
 Field com.example.MyTest.rule of type com.example.SomeMethodRule is a MethodRule,
 which TeaVM cannot run because it needs java.lang.reflect.Method. Use a TestRule.
 ```
 
-## Using it in another module
+## Using it in any TeaVM/JUnit module
 
 Add the dependency, above `teavm-junit` so that its copies of the runner classes
 come first on the classpath:
@@ -105,12 +113,23 @@ come first on the classpath:
 </dependency>
 ```
 
-That is the whole setup. There is nothing to register and nothing to call: the
-work happens while TeaVM compiles the test, and `@Rule` fields start being
-honoured.
+No registration or explicit call is required. The support is applied while
+TeaVM compiles the test, after which `@Rule` fields and no-argument rule methods
+are honoured.
 
-`mockatcha-examples` does exactly this, and `TimesheetRuleTest` there proves the
-rule is running rather than quietly doing nothing.
+With this dependency present, any JUnit `TestRule` is honoured. A Mockatcha test
+should normally use:
+
+```java
+@Rule
+public MockatchaRule mockatcha = new MockatchaRule();
+```
+
+There is no need for that test to extend `StrictTest` or open a
+`MockatchaSession` itself.
+
+[`TimesheetRuleTest`](../mockatcha-examples/src/test/java/io/instanto/mockatcha/examples/TimesheetRuleTest.java)
+uses this setup and proves that the rule runs.
 
 ## Running it
 
@@ -118,6 +137,9 @@ rule is running rather than quietly doing nothing.
 mvn -pl teavm-rule-support test
 ```
 
-`RuleSupportTeaVmTest` declares two rules and checks that both wrap the test,
-that they nest and unwind in the right order, and that the `Description` a rule
-receives names the test class and method.
+`RuleSupportTeaVmTest` declares two rule fields and one rule method, and checks
+that all three wrap the test, nest and unwind in the right order, and receive a
+`Description` naming the test class and method. `RuleOrderTeaVmTest` covers
+`@Rule(order = ...)`, `AfterFailureTeaVmTest` proves an isolated teardown
+failure is propagated, and `MockatchaRuleTeaVmTest` exercises a real consumer
+without coupling the implementation to it.

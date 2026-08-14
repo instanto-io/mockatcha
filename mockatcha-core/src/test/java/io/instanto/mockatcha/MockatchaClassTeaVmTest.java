@@ -246,6 +246,22 @@ public class MockatchaClassTeaVmTest {
     assertTrue(pricing.constructorRan());
   }
 
+  @Test
+  public void preservesVirtualCallsMadeByAConstructor() {
+    ConstructorHook service = mock(ConstructorHook.class);
+
+    assertEquals("real during construction", service.valueSeenByConstructor());
+    assertNull(service.value());
+  }
+
+  @Test
+  public void givesAbstractConstructorHooksAnEmptyValue() {
+    AbstractConstructorHook service = mock(AbstractConstructorHook.class);
+
+    assertEquals(0, service.valueSeenByConstructor());
+    assertEquals(0, service.value());
+  }
+
   public static class PricingService {
 
     private final boolean constructed;
@@ -306,6 +322,30 @@ public class MockatchaClassTeaVmTest {
 
     public int discount() {
       return 5;
+    }
+  }
+
+  public static class ConstructorHook {
+
+    private final String constructedWith = value();
+
+    public String value() {
+      return "real during construction";
+    }
+
+    public final String valueSeenByConstructor() {
+      return constructedWith;
+    }
+  }
+
+  public abstract static class AbstractConstructorHook {
+
+    private final int constructedWith = value();
+
+    public abstract int value();
+
+    public final int valueSeenByConstructor() {
+      return constructedWith;
     }
   }
 

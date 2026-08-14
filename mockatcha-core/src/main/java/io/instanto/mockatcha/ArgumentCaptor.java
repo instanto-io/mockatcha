@@ -1,5 +1,6 @@
 package io.instanto.mockatcha;
 
+import io.instanto.mockatcha.internal.MockRuntime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,12 +49,8 @@ public final class ArgumentCaptor<T> {
    */
   @SuppressWarnings("unchecked")
   public T capture() {
-    ArgumentMatchers.argThat(
-        argument -> {
-          captured.add((T) argument);
-          return true;
-        },
-        "capture()");
+    MockRuntime.registerMatcher(
+        argument -> true, "capture()", argument -> captured.add((T) argument));
     return (T) emptyValueFor(type);
   }
 

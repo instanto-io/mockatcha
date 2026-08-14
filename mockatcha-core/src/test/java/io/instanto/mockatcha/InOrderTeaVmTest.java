@@ -11,6 +11,9 @@ import static io.instanto.mockatcha.Mockatcha.only;
 import static io.instanto.mockatcha.Mockatcha.times;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -162,6 +165,17 @@ public class InOrderTeaVmTest {
     InOrder order = inOrder(repository);
     order.verify(repository).save(anyString());
     order.verify(repository).audit(anyString());
+  }
+
+  @Test
+  public void capturesAnOrderedInvocationOnlyOnce() {
+    Repository repository = mock(Repository.class);
+    ArgumentCaptor<String> report = ArgumentCaptor.forClass(String.class);
+    repository.save("report");
+
+    inOrder(repository).verify(repository).save(report.capture());
+
+    assertEquals(List.of("report"), report.getAllValues());
   }
 
   @Test

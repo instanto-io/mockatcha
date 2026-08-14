@@ -10,9 +10,16 @@ import static io.instanto.mockatcha.AdditionalMatchers.leq;
 import static io.instanto.mockatcha.AdditionalMatchers.lt;
 import static io.instanto.mockatcha.AdditionalMatchers.not;
 import static io.instanto.mockatcha.AdditionalMatchers.or;
+import static io.instanto.mockatcha.ArgumentMatchers.any;
 import static io.instanto.mockatcha.ArgumentMatchers.anyString;
+import static io.instanto.mockatcha.ArgumentMatchers.endsWith;
 import static io.instanto.mockatcha.ArgumentMatchers.eq;
+import static io.instanto.mockatcha.ArgumentMatchers.nullable;
+import static io.instanto.mockatcha.ArgumentMatchers.same;
+import static io.instanto.mockatcha.ArgumentMatchers.startsWith;
 import static io.instanto.mockatcha.Mockatcha.inOrder;
+import static io.instanto.mockatcha.Mockatcha.doReturn;
+import static io.instanto.mockatcha.Mockatcha.lenient;
 import static io.instanto.mockatcha.Mockatcha.mock;
 import static io.instanto.mockatcha.Mockatcha.times;
 import static io.instanto.mockatcha.Mockatcha.validateUsage;
@@ -122,6 +129,18 @@ public class InteractionsAndMatchersTeaVmTest {
   }
 
   @Test
+  public void aFailedVerificationDoesNotConsumeTheCall() {
+    Repository repository = mock(Repository.class);
+    repository.save("report");
+
+    assertThrows(AssertionError.class, () -> verify(repository, times(2)).save("report"));
+    assertThrows(AssertionError.class, () -> verifyNoMoreInteractions(repository));
+
+    verify(repository).save("report");
+    verifyNoMoreInteractions(repository);
+  }
+
+  @Test
   public void combinesTwoMatchers() {
     Repository repository = mock(Repository.class);
 
@@ -166,6 +185,17 @@ public class InteractionsAndMatchersTeaVmTest {
   }
 
   @Test
+  public void comparesLargeLongsWithoutLosingPrecision() {
+    Repository repository = mock(Repository.class);
+    long boundary = 9_007_199_254_740_992L;
+
+    when(repository.gradeLong(AdditionalMatchers.gt(boundary))).thenReturn("greater");
+
+    assertNull(repository.gradeLong(boundary));
+    assertEquals("greater", repository.gradeLong(boundary + 1));
+  }
+
+  @Test
   public void comparesAnythingWithAnOrdering() {
     Repository repository = mock(Repository.class);
 
@@ -203,7 +233,77 @@ public class InteractionsAndMatchersTeaVmTest {
     when(repository.describe(find("A-\\d+"))).thenReturn("an account");
 
     assertEquals("an account", repository.describe("timesheet for A-17"));
+    assertEquals("an account", repository.describe("first line\nA-18\nlast line"));
     assertNull(repository.describe("timesheet"));
+  }
+
+  @Test
+  public void matchesByRuntimeTypeWithOptionalNullability() {
+    Repository repository = mock(Repository.class);
+
+    when(repository.classify(any(String.class))).thenReturn("string");
+    when(repository.optional(nullable(Integer.class))).thenReturn("number or absent");
+
+    assertEquals("string", repository.classify("A-17"));
+    assertNull(repository.classify(null));
+    assertNull(repository.classify(17));
+    assertEquals("number or absent", repository.optional(17));
+    assertEquals("number or absent", repository.optional(null));
+    assertNull(repository.optional("17"));
+  }
+
+  @Test
+  public void matchesTheSameInstanceRatherThanAnEqualObject() {
+    Repository repository = mock(Repository.class);
+    EqualValue wanted = new EqualValue("A-17");
+
+    when(repository.classify(same(wanted))).thenReturn("identical");
+
+    assertEquals("identical", repository.classify(wanted));
+    assertNull(repository.classify(new EqualValue("A-17")));
+  }
+
+  @Test
+  public void matchesStringPrefixesAndSuffixes() {
+    Repository repository = mock(Repository.class);
+
+    when(repository.describe(startsWith("account:"))).thenReturn("account");
+    when(repository.describe(endsWith(".csv"))).thenReturn("csv");
+
+    assertEquals("account", repository.describe("account:A-17"));
+    assertEquals("csv", repository.describe("timesheet.csv"));
+    assertNull(repository.describe("timesheet.txt"));
+  }
+
+  @Test
+  public void reportsAndClearsAnUnfinishedVerification() {
+    Repository repository = mock(Repository.class);
+
+    verify(repository);
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    assertTrue(failure.getMessage(), failure.getMessage().contains("verify(mock)"));
+    validateUsage();
+  }
+
+  @Test
+  public void reportsAndClearsAnUnfinishedStubber() {
+    Repository repository = mock(Repository.class);
+
+    doReturn("unused").when(repository);
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    assertTrue(failure.getMessage(), failure.getMessage().contains("when(mock)"));
+    validateUsage();
+  }
+
+  @Test
+  public void reportsAndClearsUnfinishedLeniency() {
+    lenient();
+
+    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    assertTrue(failure.getMessage(), failure.getMessage().contains("lenient()"));
+    validateUsage();
   }
 
   @Test
@@ -249,6 +349,12 @@ public class InteractionsAndMatchersTeaVmTest {
 
     String grade(int score);
 
+    String gradeLong(long score);
+
+    String classify(Object value);
+
+    String optional(Object value);
+
     void write(byte[] bytes);
   }
 
@@ -256,6 +362,25 @@ public class InteractionsAndMatchersTeaVmTest {
 
     public String describe(String note) {
       return note;
+    }
+  }
+
+  public static final class EqualValue {
+
+    private final String value;
+
+    EqualValue(String value) {
+      this.value = value;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof EqualValue && value.equals(((EqualValue) other).value);
+    }
+
+    @Override
+    public int hashCode() {
+      return value.hashCode();
     }
   }
 }

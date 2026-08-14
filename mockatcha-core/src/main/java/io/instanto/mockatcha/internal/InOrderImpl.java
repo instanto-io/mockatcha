@@ -73,9 +73,13 @@ public final class InOrderImpl implements InOrder {
 
     mode.verify(
         new VerificationContext(
-            matched.size(), remaining.size(), pattern.toString(), remaining));
+            matched.size(),
+            remaining.size(),
+            MockRuntime.descriptionOf(mock) + ": " + pattern,
+            remaining));
 
     if (!matched.isEmpty()) {
+      MockRuntime.capture(pattern, matched);
       cursor = matched.get(matched.size() - 1).sequence();
       MockRuntime.markVerified(mock, matched);
     }

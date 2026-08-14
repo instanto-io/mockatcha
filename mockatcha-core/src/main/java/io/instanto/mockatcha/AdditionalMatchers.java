@@ -3,6 +3,7 @@ package io.instanto.mockatcha;
 import io.instanto.mockatcha.internal.MockRuntime;
 import io.instanto.mockatcha.internal.RegisteredMatcher;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Matchers that compare and combine, alongside the ones in {@link ArgumentMatchers}.
@@ -162,12 +163,12 @@ public final class AdditionalMatchers {
   }
 
   public static int gt(int value) {
-    compare(value, ">");
+    compareIntegral(value, ">");
     return 0;
   }
 
   public static long gt(long value) {
-    compare(value, ">");
+    compareIntegral(value, ">");
     return 0L;
   }
 
@@ -177,12 +178,12 @@ public final class AdditionalMatchers {
   }
 
   public static int geq(int value) {
-    compare(value, ">=");
+    compareIntegral(value, ">=");
     return 0;
   }
 
   public static long geq(long value) {
-    compare(value, ">=");
+    compareIntegral(value, ">=");
     return 0L;
   }
 
@@ -192,12 +193,12 @@ public final class AdditionalMatchers {
   }
 
   public static int lt(int value) {
-    compare(value, "<");
+    compareIntegral(value, "<");
     return 0;
   }
 
   public static long lt(long value) {
-    compare(value, "<");
+    compareIntegral(value, "<");
     return 0L;
   }
 
@@ -207,12 +208,12 @@ public final class AdditionalMatchers {
   }
 
   public static int leq(int value) {
-    compare(value, "<=");
+    compareIntegral(value, "<=");
     return 0;
   }
 
   public static long leq(long value) {
-    compare(value, "<=");
+    compareIntegral(value, "<=");
     return 0L;
   }
 
@@ -249,10 +250,11 @@ public final class AdditionalMatchers {
   /** Matches a string containing this regular expression. */
   public static String find(String regularExpression) {
     Objects.requireNonNull(regularExpression, "regularExpression");
+    Pattern pattern = Pattern.compile(regularExpression);
     return ArgumentMatchers.argThat(
         argument ->
             argument instanceof String
-                && ((String) argument).matches(".*" + regularExpression + ".*"),
+                && pattern.matcher((String) argument).find(),
         "find(\"" + regularExpression + "\")");
   }
 
@@ -297,12 +299,23 @@ public final class AdditionalMatchers {
     RegisteredMatcher right = MockRuntime.takeLastMatcher();
     RegisteredMatcher left = MockRuntime.takeLastMatcher();
     String name = requireBoth ? "and" : "or";
-    return ArgumentMatchers.argThat(
+    ArgumentMatcher<Object> combined =
         argument ->
             requireBoth
                 ? left.matches(argument) && right.matches(argument)
-                : left.matches(argument) || right.matches(argument),
-        name + "(" + left + ", " + right + ")");
+                : left.matches(argument) || right.matches(argument);
+    MockRuntime.registerMatcher(
+        combined,
+        name + "(" + left + ", " + right + ")",
+        argument -> {
+          if (left.matches(argument)) {
+            left.capture(argument);
+          }
+          if (right.matches(argument)) {
+            right.capture(argument);
+          }
+        });
+    return null;
   }
 
   private static <T> T invert() {
@@ -320,6 +333,22 @@ public final class AdditionalMatchers {
     ArgumentMatchers.argThat(
         argument -> argument instanceof Number && holds(operator, compareNumbers(argument, bound)),
         operator + " " + bound);
+  }
+
+  private static void compareIntegral(long bound, String operator) {
+    ArgumentMatchers.argThat(
+        argument -> argument instanceof Number && holds(operator, compareNumber(argument, bound)),
+        operator + " " + bound);
+  }
+
+  private static int compareNumber(Object argument, long bound) {
+    if (argument instanceof Byte
+        || argument instanceof Short
+        || argument instanceof Integer
+        || argument instanceof Long) {
+      return Long.compare(((Number) argument).longValue(), bound);
+    }
+    return Double.compare(((Number) argument).doubleValue(), (double) bound);
   }
 
   private static <T extends Comparable<T>> T compareTo(T bound, String operator) {
