@@ -45,7 +45,7 @@ public class EventsTeaVmTest {
 
   @Test
   public void eventsBubbleToAnAncestor() {
-    render("<form id='outer'><button>Save</button></form>");
+    render("<div id='outer'><button type='button'>Save</button></div>");
     listen(find("#outer"), "click");
 
     click("button");
@@ -55,12 +55,12 @@ public class EventsTeaVmTest {
 
   @Test
   public void anyEventCanBeDispatched() {
-    render("<form id='outer'></form>");
-    listen(find("#outer"), "submit");
+    render("<div id='outer'></div>");
+    listen(find("#outer"), "inventory-refreshed");
 
-    fire(find("#outer"), "submit");
+    fire(find("#outer"), "inventory-refreshed");
 
-    assertEquals(List.of("submit"), seen);
+    assertEquals(List.of("inventory-refreshed"), seen);
   }
 
   @Test
