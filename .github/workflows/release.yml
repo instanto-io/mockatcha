@@ -1,0 +1,87 @@
+name: Upload release branch to Central
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Version from the prepared release branch, for example 0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mockatcha-central-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.branch.outputs.commit }}
+    env:
+      RELEASE_VERSION: ${{ inputs.release_version }}
+    steps:
+      - name: Check release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+      - uses: actions/checkout@v7
+        with:
+          ref: release/${{ inputs.release_version }}
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Check the branch matches the requested release
+        id: branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          current=$(./mvnw -B -q -ntp help:evaluate -Dexpression=project.version -DforceStdout)
+          scm_ref=$(./mvnw -B -q -ntp help:evaluate -Dexpression=project.scm.tag -DforceStdout)
+          test "$current" = "$RELEASE_VERSION"
+          test "$scm_ref" = "release/$RELEASE_VERSION"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Verify release jars and Chrome tests without signing credentials
+        run: ./mvnw -B -ntp -Prelease clean verify -Dgpg.skip=true
+      - name: Verify DOM tests in Firefox
+        run: ./mvnw -B -ntp -pl mockatcha-dom -am -Dmockatcha.test.browser=browser-firefox test
+
+  upload:
+    needs: check
+    runs-on: ubuntu-latest
+    environment: maven-central
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Publish the tested release-branch commit, even if the branch moves later.
+          ref: ${{ needs.check.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build, sign and upload for Central validation
+        env:
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_KEY }}
+          MAVEN_GPG_KEY_FINGERPRINT: ${{ secrets.MAVEN_GPG_KEY_FINGERPRINT }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CENTRAL_TOKEN_USERNAME"
+          test -n "$CENTRAL_TOKEN_PASSWORD"
+          test -n "$MAVEN_GPG_KEY"
+          test -n "$MAVEN_GPG_KEY_FINGERPRINT"
+          ./mvnw -B -ntp --settings .github/maven-central-settings.xml \
+            -Prelease clean deploy -Dgpg.signer=bc
+          echo 'Central validation passed. Review the deployment in the Portal and choose Publish to make it public.' >> "$GITHUB_STEP_SUMMARY"

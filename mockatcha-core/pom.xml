@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.instanto</groupId>
+    <artifactId>mockatcha</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>mockatcha-core</artifactId>
+  <name>Mockatcha Core</name>
+  <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-metaprogramming-api</artifactId>
+    </dependency>
+    <!--
+      Class mocking builds an abstract shim while TeaVM compiles a test. Both of these run inside
+      the compiler, which already supplies them, so neither is passed on to consumers.
+    -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-extension-apis</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-relocated-libs-asm</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-classlib</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- StrictTest is a base class a consumer's own tests extend, so JUnit is compiled
+         against here and supplied by the test suite that uses it. -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <teavm.junit.target>${project.build.directory}/js-tests</teavm.junit.target>
+            <teavm.junit.js.runner>${mockatcha.test.browser}</teavm.junit.js.runner>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

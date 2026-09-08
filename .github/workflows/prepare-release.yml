@@ -1,0 +1,90 @@
+name: Prepare release branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version, for example 0.1.0 (without SNAPSHOT)'
+        required: true
+        type: string
+      next_version:
+        description: 'Next development version, for example 0.1.1 (SNAPSHOT is added)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mockatcha-release-preparation
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      NEXT_VERSION: ${{ inputs.next_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Check versions and branch state
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const { RELEASE_VERSION: release, NEXT_VERSION: next } = process.env;
+          const valid = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
+          if (!valid.test(release) || !valid.test(next)) throw Error('Use numeric major.minor.patch versions without suffixes.');
+          const a = release.split('.').map(BigInt), b = next.split('.').map(BigInt);
+          const first = a.findIndex((value, i) => value !== b[i]);
+          if (first < 0 || b[first] < a[first]) throw Error('The next version must be greater than the release version.');
+          JS
+          current=$(./mvnw -B -q -ntp help:evaluate -Dexpression=project.version -DforceStdout)
+          test "$current" = "$RELEASE_VERSION-SNAPSHOT"
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test -z "$(git ls-remote --heads origin "refs/heads/release/$RELEASE_VERSION")"
+          test -z "$(git status --porcelain)"
+          git config user.name 'Carl Stainton'
+          git config user.email 'carl@instanto.io'
+      - name: Prepare and check release POMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch -c "release/$RELEASE_VERSION"
+          ./mvnw -B -ntp org.codehaus.mojo:versions-maven-plugin:2.19.1:set \
+            -DnewVersion="$RELEASE_VERSION" -DprocessAllModules=true -DgenerateBackupPoms=false
+          ./mvnw -B -ntp org.codehaus.mojo:versions-maven-plugin:2.19.1:set-scm-tag \
+            -DnewTag="release/$RELEASE_VERSION" -DgenerateBackupPoms=false
+          ./mvnw -B -ntp -Prelease validate
+          git add -- pom.xml '*/pom.xml'
+          git commit -m "Prepare release $RELEASE_VERSION"
+      - name: Advance main and push both branches together
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch main
+          ./mvnw -B -ntp org.codehaus.mojo:versions-maven-plugin:2.19.1:set \
+            -DnewVersion="$NEXT_VERSION-SNAPSHOT" -DprocessAllModules=true -DgenerateBackupPoms=false
+          ./mvnw -B -ntp org.codehaus.mojo:versions-maven-plugin:2.19.1:set-scm-tag \
+            -DnewTag=HEAD -DgenerateBackupPoms=false
+          ./mvnw -B -ntp validate
+          git add -- pom.xml '*/pom.xml'
+          git commit -m "Begin $NEXT_VERSION-SNAPSHOT development"
+          # A concurrent main update rejects this whole push; no force or partial cutover.
+          git push --atomic origin main "release/$RELEASE_VERSION"
+          {
+            echo "Prepared release/$RELEASE_VERSION with version $RELEASE_VERSION."
+            echo "Main now uses $NEXT_VERSION-SNAPSHOT."
+            echo 'Review the release branch, then run Upload release branch to Central.'
+            echo 'No artifacts have been published by this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
