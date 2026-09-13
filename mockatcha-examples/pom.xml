@@ -29,7 +29,7 @@
     <dependency>
       <groupId>io.instanto</groupId>
       <artifactId>teavm-rule-support</artifactId>
-      <version>${project.version}</version>
+      <version>${teavm-rule-support.version}</version>
       <scope>test</scope>
     </dependency>
     <!-- The sparkline example draws to a canvas, so the browser APIs are compiled in. -->

@@ -11,7 +11,6 @@ import java.util.Objects;
 /** Method-name stubbing, call inspection, and a browser clock for Mockatcha tests. */
 public final class Bdd {
 
-  private static final Clock CLOCK = new Clock();
 
   private Bdd() {}
 
@@ -43,11 +42,6 @@ public final class Bdd {
     requireMock(mock, "calls");
     Objects.requireNonNull(methodName, "methodName");
     return new CallLog(mock, methodName, MockAccess.invocations(mock, methodName), methodName);
-  }
-
-  /** The fake clock, which does nothing until it is installed. There is one per test run. */
-  public static Clock clock() {
-    return CLOCK;
   }
 
   private static void requireMock(Object mock, String operation) {

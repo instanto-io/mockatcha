@@ -12,11 +12,11 @@ All artifacts use the `io.instanto` group and the same release version:
 | Artifact | Published files |
 | --- | --- |
 | `mockatcha` | Parent POM |
+| `mockatcha-layout` | POM, library jar, sources jar, Javadoc jar |
 | `mockatcha-core` | POM, library jar, sources jar, Javadoc jar |
 | `mockatcha-bdd` | POM, library jar, sources jar, Javadoc jar |
 | `mockatcha-dom` | POM, library jar, sources jar, Javadoc jar |
 | `mockatcha-webapp-testkit` | POM, library jar, sources jar, Javadoc jar |
-| `teavm-rule-support` | POM, library jar, sources jar, Javadoc jar |
 
 The two example modules still build and test, but are excluded from Central.
 The parent is published because consumers need it to resolve the module POMs.

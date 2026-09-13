@@ -51,7 +51,7 @@ jobs:
       - name: Verify release jars and Chrome tests without signing credentials
         run: ./mvnw -B -ntp -Prelease clean verify -Dgpg.skip=true
       - name: Verify DOM tests in Firefox
-        run: ./mvnw -B -ntp -pl mockatcha-dom -am -Dmockatcha.test.browser=browser-firefox test
+        run: ./mvnw -B -ntp -Dmockatcha.test.browser=browser-firefox test
 
   upload:
     needs: check

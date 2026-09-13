@@ -33,6 +33,16 @@
     <tag>HEAD</tag>
   </scm>
 
+  <!-- JUnit rule support is a separate library now. -->
+  <repositories>
+    <repository>
+      <id>github-teavm-rule-support</id>
+      <url>https://maven.pkg.github.com/instanto-io/teavm-rule-support</url>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
   <distributionManagement>
     <repository>
       <id>github-mockatcha</id>
@@ -51,17 +61,14 @@
     <maven.compiler.release>21</maven.compiler.release>
     <teavm.version>0.15.0</teavm.version>
     <junit.version>4.13.2</junit.version>
+    <teavm-rule-support.version>0.1.0-SNAPSHOT</teavm-rule-support.version>
     <mockatcha.test.browser>browser-chrome</mockatcha.test.browser>
   </properties>
 
   <modules>
     <module>mockatcha-core</module>
     <module>mockatcha-bdd</module>
-    <module>mockatcha-webapp-testkit</module>
-    <module>mockatcha-webapp-example</module>
-    <module>mockatcha-dom</module>
     <module>mockatcha-examples</module>
-    <module>teavm-rule-support</module>
   </modules>
 
   <dependencyManagement>
@@ -136,6 +143,52 @@
           <mapping><java>SLASHSTAR_STYLE</java></mapping>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.9.6.0</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>Low</threshold>
+          <xmlOutput>true</xmlOutput>
+          <spotbugsXmlOutputDirectory>${project.build.directory}/spotbugs</spotbugsXmlOutputDirectory>
+          <spotbugsXmlOutputFilename>${project.artifactId}-spotbugs.xml</spotbugsXmlOutputFilename>
+          <sarifOutput>true</sarifOutput>
+          <sarifOutputDirectory>${project.build.directory}/spotbugs</sarifOutputDirectory>
+          <sarifOutputFilename>${project.artifactId}-spotbugs.sarif</sarifOutputFilename>
+          <htmlOutput>true</htmlOutput>
+          <outputDirectory>${project.build.directory}/spotbugs</outputDirectory>
+          <failOnError>true</failOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotbugs-report</id>
+            <phase>process-classes</phase>
+            <goals><goal>spotbugs</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>name-spotbugs-html-report</id>
+            <phase>process-classes</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <move todir="${project.build.directory}/spotbugs">
+                  <fileset dir="${project.build.directory}/spotbugs" includes="spotbugs.html" erroronmissingdir="false"/>
+                  <globmapper from="spotbugs.html" to="${project.artifactId}-spotbugs.html"/>
+                </move>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -246,7 +299,6 @@
               <!-- Exercise examples in the reactor, but do not publish them. -->
               <excludeArtifacts>
                 <excludeArtifact>mockatcha-examples</excludeArtifact>
-                <excludeArtifact>mockatcha-webapp-example</excludeArtifact>
               </excludeArtifacts>
             </configuration>
           </plugin>

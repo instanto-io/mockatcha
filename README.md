@@ -70,11 +70,10 @@ example, imports, TeaVM dependencies, and Surefire configuration.
 | Module | Documentation |
 | --- | --- |
 | `mockatcha-core` | Mockito-style mocks, spies, verification, and lifecycle support. Start with the [core guide](docs/README.md). |
-| `mockatcha-bdd` | [Browser clock, call logs, value matchers, and method-name stubbing](mockatcha-bdd/README.md). |
-| `mockatcha-dom` | [Accessible DOM queries, interactions, waiting, and assertions](mockatcha-dom/README.md). It can be used without `mockatcha-core`. |
-| `mockatcha-webapp-testkit` | [Testing any built web application from a TeaVM Java test](mockatcha-webapp-testkit/README.md). The application itself does not need to use TeaVM. |
+| `mockatcha-bdd` | [Call logs, value matchers, and method-name stubbing](mockatcha-bdd/README.md). |
+| Webapp Testkit | [Testing web applications in a real browser through TeaVM](https://github.com/instanto-io/webapp-testkit). A separate library; it does not depend on Mockatcha. |
 | `mockatcha-examples` | [Executable examples](mockatcha-examples/README.md). |
-| `teavm-rule-support` | [JUnit `TestRule` support for TeaVM](teavm-rule-support/README.md). It can be used outside Mockatcha. |
+| `teavm-rule-support` | JUnit `TestRule` support for TeaVM, now a separate library. It can be used outside Mockatcha. |
 
 ## Examples
 
@@ -112,17 +111,34 @@ Run only the examples and their dependencies:
 mvn -pl mockatcha-examples -am test
 ```
 
+## Credits
+
+Thank you to the people behind the projects whose ideas inform Mockatcha:
+
+- [Mockito](https://site.mockito.org/) for the mocking, stubbing, spies, argument
+  matching, and verification APIs that Mockatcha Core follows.
+- [Jasmine](https://jasmine.github.io/) for the browser-testing style behind the
+  BDD helpers, call inspection, and value matchers.
+- [Testing Library](https://testing-library.com/) for finding and testing page
+  elements through the roles, labels, and text available to users.
+- [jasmine-jquery](https://github.com/velesin/jasmine-jquery) and
+  [jest-dom](https://github.com/testing-library/jest-dom) for the DOM assertion
+  vocabulary used in Mockatcha DOM.
+
+Mockatcha also builds on [TeaVM](https://teavm.org/), which compiles the Java
+tests and provides the browser runner, and [JUnit](https://junit.org/junit4/),
+which supplies the Java test structure, assertions, and lifecycle. Thank you to
+their maintainers and contributors for making this work possible.
+
 ## License
 
 Mockatcha is licensed under the [Apache License 2.0](LICENSE).
 
-## Support TeaVM and Sarto
+## Support Mockatcha and TeaVM
 
-Mockatcha is part of the Sarto Java ecosystem and is built on
-[TeaVM](https://github.com/konsoletyper/teavm). If Mockatcha supports your work,
-please consider funding the projects behind it:
+If Mockatcha helps your work, please consider supporting its development and
+the compiler it builds on:
 
-- [Sponsor TeaVM](https://github.com/sponsors/konsoletyper) to support the
-  compiler that brings Java to the browser.
-- [Sponsor Sarto](https://github.com/sponsors/instanto-io) to support Mockatcha
-  and the other Sarto libraries.
+- [Support Mockatcha](https://github.com/sponsors/instanto-io).
+- [Support TeaVM](https://github.com/sponsors/konsoletyper), the compiler that
+  brings Java to the browser.

@@ -116,7 +116,7 @@ avoid calling a real method.
 The aliases delegate to the core API and can be mixed with `when(...)` and
 `verify(...)`. They are separate from the
 [`mockatcha-bdd` module](../mockatcha-bdd/README.md), which provides a browser
-clock, call logs, and additional matchers.
+call logs and additional matchers.
 
 Continue with [strictness and lifecycle](strictness-and-lifecycle.md).
 

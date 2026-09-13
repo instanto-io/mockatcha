@@ -24,7 +24,7 @@ jobs:
         run: ./mvnw --batch-mode --no-transfer-progress --errors --fail-at-end clean test
 
   cross-browser:
-    name: Clock and DOM (${{ matrix.browser_name }})
+    name: Browser tests (${{ matrix.browser_name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,10 +41,10 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Verify clock and DOM behavior
+      - name: Verify the reactor in this browser
         run: >-
           ./mvnw --batch-mode --no-transfer-progress --errors --fail-at-end
-          -pl mockatcha-dom -am -Dmockatcha.test.browser=${{ matrix.runner }} test
+          -Dmockatcha.test.browser=${{ matrix.runner }} test
 
   publish-snapshot:
     if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

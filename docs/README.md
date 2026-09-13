@@ -20,18 +20,18 @@ standalone reference.
 | Guide | Use it for |
 | --- | --- |
 | [BDD helpers](../mockatcha-bdd/README.md) | Method-name stubbing, call logs, additional matchers, and controlled browser time. |
-| [DOM testing](../mockatcha-dom/README.md) | Accessible queries, interactions, asynchronous rendering, assertions, and frames. |
-| [Webapp testkit](../mockatcha-webapp-testkit/README.md) | Extending Mockatcha DOM and TeaVM's test runner to applications built with any web stack. |
-| [JUnit rules for TeaVM](../teavm-rule-support/README.md) | Running ordinary JUnit `TestRule` fields and methods through TeaVM. |
+| [DOM testing](https://github.com/instanto-io/webapp-testkit) | Accessible queries, interactions, asynchronous rendering, assertions, and frames. |
+| [Webapp testkit](https://github.com/instanto-io/webapp-testkit) | Extending Mockatcha DOM and TeaVM's test runner to applications built with any web stack. |
+| JUnit rules for TeaVM (`io.instanto:teavm-rule-support`) | Running ordinary JUnit `TestRule` fields and methods through TeaVM. |
 
 ## Examples
 
 The [core examples guide](../mockatcha-examples/README.md) links to executable
 tests for stubbing, verification, spies, strict lifecycle support, and canvas
 code. The
-[plain JavaScript webapp](../mockatcha-webapp-example/src/main/resources/webapp)
-is exercised by integration tests in `mockatcha-dom` and has no TeaVM
-dependency of its own.
+plain JavaScript webapp
+is exercised by the [webapp testkit](https://github.com/instanto-io/webapp-testkit)'s
+own tests and has no TeaVM dependency of its own.
 
 [Back to the project README](../README.md)
 

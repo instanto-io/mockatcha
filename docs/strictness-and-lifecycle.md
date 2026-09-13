@@ -67,7 +67,7 @@ attaches lifecycle failures as suppressed exceptions. The test class remains
 free to extend another class.
 
 TeaVM's runner needs the reusable
-[`teavm-rule-support` module](../teavm-rule-support/README.md) to execute JUnit
+separate [`io.instanto:teavm-rule-support`](https://github.com/instanto-io/teavm-rule-support) library to execute JUnit
 rules. Put it on the test classpath ahead of `teavm-junit`. The module is
 independent of Mockatcha and supports ordinary `TestRule` use in other
 TeaVM/JUnit projects.

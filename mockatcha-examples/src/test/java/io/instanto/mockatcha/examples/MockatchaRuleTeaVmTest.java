@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package io.instanto.rules;
+package io.instanto.mockatcha.examples;
 
 import static io.instanto.mockatcha.Mockatcha.mock;
 import static io.instanto.mockatcha.Mockatcha.when;
@@ -20,7 +20,8 @@ import org.teavm.junit.TeaVMTestRunner;
 /**
  * Mockatcha's checks as a rule, in a module that only depends on the fix.
  *
- * <p>Nothing here registers anything: the dependency is enough.
+ * <p>Nothing here registers anything: having {@code teavm-rule-support} on the test classpath,
+ * ahead of {@code teavm-junit}, is enough.
  */
 @RunWith(TeaVMTestRunner.class)
 @SkipJVM
