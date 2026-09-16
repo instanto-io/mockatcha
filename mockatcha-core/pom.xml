@@ -22,8 +22,10 @@
       <version>9.9.1</version>
     </dependency>
     <dependency>
+      <!-- Compiling the generator needs it; TeaVM supplies it when it compiles a test. -->
       <groupId>org.teavm</groupId>
       <artifactId>teavm-metaprogramming-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <!--
       Class mocking builds an abstract shim while TeaVM compiles a test. Both of these run inside

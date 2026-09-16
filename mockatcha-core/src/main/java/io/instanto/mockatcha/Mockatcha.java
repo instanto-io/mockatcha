@@ -5,7 +5,6 @@
  */
 package io.instanto.mockatcha;
 
-import static org.teavm.metaprogramming.Metaprogramming.currentLocation;
 
 import io.instanto.mockatcha.internal.CountingMode;
 import io.instanto.mockatcha.internal.InOrderImpl;
