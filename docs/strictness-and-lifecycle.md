@@ -111,6 +111,32 @@ be reused by a later test. Sessions cannot be nested, including inside
 | JUnit without rule support | `StrictTest` |
 | Non-JUnit or custom harness | `MockatchaSession` in try-with-resources |
 
+## Release what a test did not check
+
+`Mockatcha.releaseMocks()` hands back the mocks this thread created outside a
+session, along with any stubbing or verification left half-finished. It checks
+none of them.
+
+A mock created without `MockatchaRule` or a session stays on a list until
+something asks for a check. A check given no arguments drains that whole list.
+
+Under TeaVM each test class starts in a fresh page, so the list could only ever
+reach the next test in the same class. A JVM runs the whole suite in one process.
+There a class that left a stub unused is reported against whichever class asks
+next, naming a mock from somewhere else.
+
+Call it after a test that owns no session:
+
+```java
+@After
+public void releaseMockatchaState() {
+    Mockatcha.releaseMocks();
+}
+```
+
+A session's own mocks are left alone, because closing the session already
+releases them. Releasing twice does nothing the first call did not.
+
 ## Reuse or inspect a mock
 
 Create fresh mocks for most tests. For a deliberately shared fixture:
@@ -138,7 +164,10 @@ Mockatcha works with interfaces and with classes that satisfy three conditions:
 - the methods to replace are public or protected instance methods.
 
 Static, private, and final methods retain their real behaviour. Pass the type as
-a class literal, for example `mock(ProfileRepository.class)`. Invalid requests
-fail during TeaVM compilation with the type and violated rule.
+a class literal, for example `mock(ProfileRepository.class)`; TeaVM needs the
+literal to generate the mock while it compiles. An invalid request names the type
+and the rule it broke, while TeaVM compiles or, on a JVM, when the test runs. A
+JVM also needs the class's package open to Mockatcha, which holds on the class
+path.
 
 [Documentation index](README.md) · [Project README](../README.md)

@@ -39,13 +39,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Accounting for every call, comparing and combining matchers, and reporting misuse. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class InteractionsAndMatchersTeaVmTest {
+public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void acceptsWhenEveryCallHasBeenVerified() {

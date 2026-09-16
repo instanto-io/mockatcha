@@ -28,13 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Spies, which record calls and hand the unstubbed ones to a real object. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class MockatchaSpyTeaVmTest {
+public class MockatchaSpyTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void unstubbedMethodsReachTheRealObject() {

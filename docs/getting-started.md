@@ -1,12 +1,15 @@
 # Getting started
 
-## Choose the test runtime
+## Choose where the test runs
 
-Keep portable domain logic, algorithms, and state machines in JVM tests with
-Mockito. Those tests have all of Mockito available and usually finish much
-faster than browser tests.
+A test using Mockatcha runs on a JVM or through TeaVM. The library API is the
+same either way, so the choice is about what the code under test needs, not
+about how you write the test.
 
-Run a test through TeaVM and Mockatcha when:
+Run it on a JVM for portable domain logic, algorithms, and state machines. A JVM
+test starts without compiling the program or launching a browser.
+
+Run it through TeaVM when:
 
 - the code uses timers, the DOM, canvas, storage, or another browser API;
 - a collaborator depends on WebSocket, IndexedDB, or another browser-only API;
@@ -14,18 +17,29 @@ Run a test through TeaVM and Mockatcha when:
 - the assertion concerns JavaScript produced by TeaVM, such as emulated `long`
   arithmetic, collection iteration order, or browser date and number formats.
 
-## Compile-time mock generation
+A TeaVM test usually runs in a browser, but it runs wherever that compiled
+output runs. Tests for Cloudflare Workers run under a Miniflare runner, and
+Mockatcha needs nothing from the host to work there, because it is compiled into
+the program.
 
-Mockito creates mocks at runtime through reflection and JVM class generation.
+## How a mock is made
+
 TeaVM compiles the complete program ahead of time, so Mockatcha generates each
-mock while TeaVM compiles the test.
+mock while TeaVM compiles the test. This leads to two rules there:
 
-This leads to three rules:
+- Pass a class literal, such as `mock(ProfileRepository.class)`, so Mockatcha can
+  identify the type during compilation.
+- An invalid request, such as a final class, fails during compilation.
 
-- Pass a class literal, such as `mock(ProfileRepository.class)`, so Mockatcha
-  can identify the type during compilation.
-- Invalid requests, including a final class, fail during compilation.
-- A test that creates Mockatcha mocks must run through TeaVM.
+On a JVM the mock is made when the test asks for it. An interface becomes a
+`Proxy`, and a class gets a subclass generated at that moment. This leads to two
+rules there:
+
+- An invalid request fails when the test runs, not before, and says which rule
+  the type broke.
+- Mocking a class needs its package open to Mockatcha. That holds on the class
+  path. Inside a strong module the request is refused, and mocking an interface
+  the class implements is the way through.
 
 ## Add the dependencies
 
@@ -40,8 +54,11 @@ Add Mockatcha Core to the test classpath:
 </dependency>
 ```
 
-The test classpath also needs `teavm-classlib`, `teavm-junit`, and `junit`.
-Configure Surefire to send TeaVM tests to a browser:
+With JUnit, that is everything a JVM test needs. Mockatcha brings what it uses
+to build a mock, and a JVM test loads no TeaVM class.
+
+A test that runs through TeaVM also needs `teavm-classlib` and `teavm-junit` on
+the test classpath. Configure Surefire to send those tests to a browser:
 
 ```xml
 <systemPropertyVariables>
@@ -104,12 +121,7 @@ import static io.instanto.mockatcha.Mockatcha.when;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
-import org.teavm.junit.TeaVMTestRunner;
 
-@RunWith(TeaVMTestRunner.class)
-@SkipJVM
 public class GreetingComponentTest {
 
     @Test
@@ -129,9 +141,33 @@ public class GreetingComponentTest {
 `null`, `0`, or `false`. `when(...)` arranges a result for one call.
 `verify(...)` checks that a call occurred.
 
-`@RunWith(TeaVMTestRunner.class)` compiles and runs the test in a browser.
-`@SkipJVM` prevents JUnit from also running it on the JVM, where the generated
-mock is unavailable.
+That test runs on a JVM, and needs no TeaVM configuration.
+
+## Run the same test through TeaVM
+
+Add TeaVM's runner. Nothing in the test body changes:
+
+```java
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.teavm.junit.SkipJVM;
+import org.teavm.junit.TeaVMTestRunner;
+
+@RunWith(TeaVMTestRunner.class)
+@SkipJVM
+public class GreetingComponentTest {
+
+    @Test
+    public void showsTheGreetingFromTheService() {
+        // As above.
+    }
+}
+```
+
+`@RunWith(TeaVMTestRunner.class)` compiles the test and runs it in a browser.
+`@SkipJVM` keeps it off the JVM. Leave `@SkipJVM` out and the runner runs the
+same test in both places, which is worth doing when nothing in the test needs a
+browser. Add it when something does.
 
 Continue with [stubbing](stubbing.md).
 

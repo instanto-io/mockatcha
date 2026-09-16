@@ -1,17 +1,47 @@
 # Mockatcha
 
-Mockatcha provides Mockito-like mocking for TeaVM and Java-based browser testing
-for web applications built with any stack. Mockatcha Core generates mocks during
-TeaVM compilation. Companion modules cover browser-focused BDD, DOM testing,
-and complete application tests.
+Mockatcha provides Mockito-style mocking through one API that runs in two
+places: a JVM test, and a test that TeaVM compiles. The API is the same in both.
+`mock`, `spy`, `when`, `verify`, the argument matchers, sessions and the JUnit
+rule behave alike, because both platforms call the same runtime.
 
-The Webapp Testkit lets you write tests in Java for an application built with
-JavaScript, TypeScript, Java, or any other web stack. TeaVM compiles the tests
-to run in a browser; the application itself does not need to use Java or TeaVM.
+They differ only in how a mock is made. TeaVM compiles the whole program ahead
+of time, so Mockatcha generates each mock while TeaVM compiles the test. On a
+JVM it makes one when the test asks: an interface becomes a `Proxy`, and a class
+gets a subclass generated at that moment.
 
-Use Mockatcha for tests that depend on browser APIs, browser-only collaborators,
-or JavaScript behaviour produced by TeaVM. Keep portable domain logic on the JVM
-when Mockito can test it faster and with its full API.
+## Where a test can run
+
+- **A JVM**, for code that needs no browser.
+- **A browser**, through TeaVM and its JUnit runner, for code that uses timers,
+  the DOM, canvas, storage, or another browser API.
+- **Another runtime that runs TeaVM output.** Mockatcha is part of the compiled
+  program rather than something the host provides, so it runs where that program
+  runs. Tests for Cloudflare Workers run this way today, under a Miniflare
+  runner. Whether any other host works is a question about running TeaVM output
+  there, not about Mockatcha.
+
+## Limitations
+
+On a JVM:
+
+- Mocking a class needs its package open to Mockatcha, which is the case on the
+  class path and not inside a strong module.
+- A type that cannot be subclassed, such as a final class or one without a
+  no-argument constructor, is rejected when the test runs.
+- Mocking state is held per thread. Mocks a test creates outside a session stay
+  on that thread until something checks or releases them, because one process
+  runs the whole suite. See `releaseMocks` in
+  [Strictness and lifecycle](docs/strictness-and-lifecycle.md).
+
+Under TeaVM:
+
+- The class passed to `mock` or `spy` must be a class literal, since the mock is
+  generated while the program compiles.
+- A type that cannot be subclassed is reported while TeaVM compiles, rather than
+  when the test runs.
+- JUnit rules need the `teavm-rule-support` module. `StrictTest` is the fallback
+  where that cannot be installed.
 
 ## Documentation
 
@@ -42,8 +72,26 @@ Add Mockatcha Core to the test classpath:
 </dependency>
 ```
 
-A browser test uses TeaVM's runner and skips the JVM. Its body follows the
-familiar arrange, act, assert pattern:
+On a JVM the test is an ordinary JUnit test:
+
+```java
+public class GreetingServiceTest {
+    @Test
+    public void showsTheGreetingFromTheService() {
+        GreetingService greetings = mock(GreetingService.class);
+        when(greetings.hello("Ada")).thenReturn("Hello Ada");
+
+        String shown = new GreetingComponent(greetings).greet("Ada");
+
+        assertEquals("Hello Ada", shown);
+        verify(greetings).hello("Ada");
+    }
+}
+```
+
+The same body runs in a browser through TeaVM's runner. Only the runner and the
+`@SkipJVM` annotation differ, and `@SkipJVM` is what keeps a browser-only test
+off the JVM:
 
 ```java
 @RunWith(TeaVMTestRunner.class)

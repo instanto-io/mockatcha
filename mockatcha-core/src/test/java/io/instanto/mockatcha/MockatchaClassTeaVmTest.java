@@ -25,13 +25,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Mocking of ordinary classes, which Mockatcha supports through a generated subclass. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class MockatchaClassTeaVmTest {
+public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void stubsAndVerifiesAClassWithTheSameCallsAsAnInterface() {

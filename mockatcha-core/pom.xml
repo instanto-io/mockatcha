@@ -16,6 +16,12 @@
 
   <dependencies>
     <dependency>
+      <!-- Writes the subclass used to mock a class on the JVM; TeaVM generates its own. -->
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>9.9.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-metaprogramming-api</artifactId>
     </dependency>
@@ -23,6 +29,13 @@
       Class mocking builds an abstract shim while TeaVM compiles a test. Both of these run inside
       the compiler, which already supplies them, so neither is passed on to consumers.
     -->
+    <dependency>
+      <!-- PlatformMarker: lets the facade drop its JVM branch from TeaVM builds. -->
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-interop</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-extension-apis</artifactId>
@@ -54,6 +67,25 @@
 
   <build>
     <plugins>
+      <plugin>
+        <!-- Portable code lives in src/main; each platform's own code in src/jre and src/teavm. -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>add-platform-sources</id>
+            <phase>generate-sources</phase>
+            <goals><goal>add-source</goal></goals>
+            <configuration>
+              <sources>
+                <source>src/jre/java</source>
+                <source>src/teavm/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>

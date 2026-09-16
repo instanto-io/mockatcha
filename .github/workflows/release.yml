@@ -38,6 +38,13 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Check out the shared development parent
+        uses: actions/checkout@v4
+        with:
+          repository: instanto-io/instanto-poms
+          path: .build/instanto-poms
+      - name: Install the shared development parent
+        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
       - name: Check the branch matches the requested release
         id: branch
         shell: bash
@@ -68,6 +75,13 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Check out the shared development parent
+        uses: actions/checkout@v4
+        with:
+          repository: instanto-io/instanto-poms
+          path: .build/instanto-poms
+      - name: Install the shared development parent
+        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
       - name: Build, sign and upload for Central validation
         env:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}

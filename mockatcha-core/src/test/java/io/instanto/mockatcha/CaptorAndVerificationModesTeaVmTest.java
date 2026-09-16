@@ -22,13 +22,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Capturing the arguments a call was made with, and the counting rules verification can apply. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class CaptorAndVerificationModesTeaVmTest {
+public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void capturesAnArgumentTheTestCouldNotHavePredicted() {

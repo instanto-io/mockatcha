@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package io.instanto.mockatcha.internal.compile;
+package io.instanto.mockatcha.teavm;
 
 import java.util.List;
 import org.teavm.extension.introspect.IntrospectMethod;

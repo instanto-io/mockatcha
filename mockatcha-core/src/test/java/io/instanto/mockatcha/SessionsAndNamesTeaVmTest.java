@@ -17,12 +17,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Explicit lifecycle isolation and names carried into diagnostics. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
 public class SessionsAndNamesTeaVmTest {
 
   @Test

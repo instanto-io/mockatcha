@@ -25,15 +25,31 @@ public final class MockRuntime {
   /** Returned by dispatch when nothing is stubbed, which a stubbed null must not look like. */
   public static final Object REAL_CALL = new Object();
 
-  private static final Map<Object, MockState> STATES = new IdentityHashMap<>();
-  private static final List<RegisteredMatcher> MATCHERS = new ArrayList<>();
-  private static final List<Object> UNCHECKED_MOCKS = new ArrayList<>();
-  private static LastInvocation lastInvocation;
-  private static VerificationRequest verification;
-  private static StubbingRequest stubbing;
-  private static boolean nextStubIsLenient;
-  private static boolean strictStubs;
-  private static SessionContext session;
+  /**
+   * The mocks and the part-finished stubbing or verification belonging to one thread.
+   *
+   * <p>A test arranges a mock, calls it and checks it as one sequence, so this state belongs to
+   * whoever is running that sequence. Held per thread, two tests running at once no longer read each
+   * other's half-finished work. TeaVM runs tests on its main thread, where its ThreadLocal reads a
+   * field rather than a map, so nothing here costs more there than a static field did.
+   */
+  private static final class Scope {
+    private final Map<Object, MockState> states = new IdentityHashMap<>();
+    private final List<RegisteredMatcher> matchers = new ArrayList<>();
+    private final List<Object> uncheckedMocks = new ArrayList<>();
+    private LastInvocation lastInvocation;
+    private VerificationRequest verification;
+    private StubbingRequest stubbing;
+    private boolean nextStubIsLenient;
+    private boolean strictStubs;
+    private SessionContext session;
+  }
+
+  private static final ThreadLocal<Scope> SCOPE = ThreadLocal.withInitial(Scope::new);
+
+  private static Scope scope() {
+    return SCOPE.get();
+  }
 
   private MockRuntime() {}
 
@@ -63,7 +79,7 @@ public final class MockRuntime {
   /**
    * Reports whether a generated method should hand this call to the real object.
    *
-   * <p>A mock has no delegate, so an unstubbed call on one is where strict stubbing looks for a
+   * <p>A mock has no delegate, so an unstubbed call on one is where strict scope().stubbing looks for a
    * stub that was meant for it.
    */
   public static boolean callsReal(
@@ -80,7 +96,7 @@ public final class MockRuntime {
 
   /** Turns on failing at the call when a stub for the same method was arranged but did not match. */
   public static void strictStubs(boolean strict) {
-    strictStubs = strict;
+    scope().strictStubs = strict;
   }
 
   /**
@@ -90,7 +106,7 @@ public final class MockRuntime {
    * points at the mistake rather than at whatever the empty value later broke.
    */
   private static void requireNoNearMissStub(MockState state, String method, Object[] arguments) {
-    if (!strictStubs) {
+    if (!scope().strictStubs) {
       return;
     }
     int parenthesis = method.indexOf('(');
@@ -124,36 +140,36 @@ public final class MockRuntime {
     Objects.requireNonNull(mock, "mock");
     Objects.requireNonNull(state, "state");
     state.attach(mock);
-    STATES.put(mock, state);
-    if (session == null) {
-      UNCHECKED_MOCKS.add(mock);
+    scope().states.put(mock, state);
+    if (scope().session == null) {
+      scope().uncheckedMocks.add(mock);
     } else {
-      session.mocks.add(mock);
+      scope().session.mocks.add(mock);
     }
   }
 
   /** Starts a non-nestable lifecycle, adopting fixture mocks created before test setup ran. */
   public static Object openSession(boolean strict) {
-    if (session != null) {
+    if (scope().session != null) {
       throw new IllegalStateException("Mockatcha sessions cannot be nested");
     }
     Object token = new Object();
-    SessionContext opened = new SessionContext(token, strictStubs);
-    opened.mocks.addAll(UNCHECKED_MOCKS);
-    UNCHECKED_MOCKS.clear();
-    session = opened;
-    strictStubs = strict;
+    SessionContext opened = new SessionContext(token, scope().strictStubs);
+    opened.mocks.addAll(scope().uncheckedMocks);
+    scope().uncheckedMocks.clear();
+    scope().session = opened;
+    scope().strictStubs = strict;
     return token;
   }
 
   /** Validates and releases every mock owned by a lifecycle, even when validation fails. */
   public static void closeSession(Object token) {
-    SessionContext closing = session;
+    SessionContext closing = scope().session;
     if (closing == null || closing.token != token) {
-      throw new IllegalStateException("This Mockatcha session is not active");
+      throw new IllegalStateException("This Mockatcha scope().session is not active");
     }
-    session = null;
-    strictStubs = closing.previousStrictStubs;
+    scope().session = null;
+    scope().strictStubs = closing.previousStrictStubs;
 
     Throwable failure = null;
     try {
@@ -167,7 +183,7 @@ public final class MockRuntime {
       failure = combine(failure, thrown);
     } finally {
       for (Object mock : closing.mocks) {
-        MockState state = STATES.remove(mock);
+        MockState state = scope().states.remove(mock);
         if (state != null) {
           state.release();
         }
@@ -177,6 +193,29 @@ public final class MockRuntime {
     if (failure != null) {
       sneakyThrow(failure);
     }
+  }
+
+  /**
+   * Drops what this thread created outside a session, without validating any of it.
+   *
+   * <p>A harness calls this between tests so that mocks a test left unchecked are not reported
+   * against the next one. Mocks owned by an open session are left alone: that session releases them
+   * when it closes.
+   */
+  public static void releaseUnchecked() {
+    Scope scope = scope();
+    for (Object mock : scope.uncheckedMocks) {
+      MockState state = scope.states.remove(mock);
+      if (state != null) {
+        state.release();
+      }
+    }
+    scope.uncheckedMocks.clear();
+    scope.matchers.clear();
+    scope.lastInvocation = null;
+    scope.verification = null;
+    scope.stubbing = null;
+    scope.nextStubIsLenient = false;
   }
 
   /** Rejects a spy created without a delegate. */
@@ -189,7 +228,7 @@ public final class MockRuntime {
 
   @SuppressWarnings("unchecked")
   public static void registerMatcher(ArgumentMatcher<?> matcher, String description) {
-    MATCHERS.add(
+    scope().matchers.add(
         new RegisteredMatcher((ArgumentMatcher<Object>) matcher, description));
   }
 
@@ -197,7 +236,7 @@ public final class MockRuntime {
   @SuppressWarnings("unchecked")
   public static void registerMatcher(
       ArgumentMatcher<?> matcher, String description, Consumer<Object> onMatch) {
-    MATCHERS.add(
+    scope().matchers.add(
         new RegisteredMatcher(
             (ArgumentMatcher<Object>) matcher,
             description,
@@ -263,24 +302,24 @@ public final class MockRuntime {
 
   public static <T> OngoingStubbing<T> when() {
     requireNoPendingMatchers("when()");
-    if (lastInvocation == null) {
+    if (scope().lastInvocation == null) {
       throw new IllegalStateException("when() requires a mock invocation");
     }
-    LastInvocation captured = lastInvocation;
-    lastInvocation = null;
+    LastInvocation captured = scope().lastInvocation;
+    scope().lastInvocation = null;
     captured.state.remove(captured.invocation);
     return new OngoingStubbingImpl<>(newStub(captured.state, captured.pattern));
   }
 
   /** Marks the next stub as one no test needs to use. */
   public static void nextStubIsLenient() {
-    nextStubIsLenient = true;
+    scope().nextStubIsLenient = true;
   }
 
   private static Stub newStub(MockState state, InvocationPattern pattern) {
     Stub stub = state.addStub(pattern);
-    if (nextStubIsLenient) {
-      nextStubIsLenient = false;
+    if (scope().nextStubIsLenient) {
+      scope().nextStubIsLenient = false;
       stub.makeLenient();
     }
     return stub;
@@ -289,8 +328,8 @@ public final class MockRuntime {
   public static void beginVerification(Object mock, VerificationMode mode) {
     MockState state = requireState(mock);
     requireNoPendingMatchers("verify()");
-    verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
-    lastInvocation = null;
+    scope().verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
+    scope().lastInvocation = null;
   }
 
   /** Verifies the call that follows against an order rather than against a total count. */
@@ -298,21 +337,21 @@ public final class MockRuntime {
       Object mock, VerificationMode mode, InOrderImpl order) {
     MockState state = requireState(mock);
     requireNoPendingMatchers("verify()");
-    verification =
+    scope().verification =
         new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), order);
-    lastInvocation = null;
+    scope().lastInvocation = null;
   }
 
   /** Arranges answers for the call that follows, without letting that call run. */
   public static void beginStubbing(Object mock, List<Answer<?>> answers) {
     MockState state = requireState(mock);
     requireNoPendingMatchers("when(mock)");
-    stubbing = new StubbingRequest(state, new ArrayList<>(answers));
-    lastInvocation = null;
+    scope().stubbing = new StubbingRequest(state, new ArrayList<>(answers));
+    scope().lastInvocation = null;
   }
 
   public static boolean isMock(Object mock) {
-    return mock != null && STATES.containsKey(mock);
+    return mock != null && scope().states.containsKey(mock);
   }
 
   public static List<Invocation> invocations(Object mock) {
@@ -321,21 +360,21 @@ public final class MockRuntime {
 
   public static void clearInvocations(Object mock) {
     requireState(mock).clearInvocations();
-    lastInvocation = null;
+    scope().lastInvocation = null;
   }
 
   /** Forgets the calls recorded for one method name, keeping the rest. */
   public static void clearInvocations(Object mock, String methodName) {
     requireState(mock).clearInvocations(Objects.requireNonNull(methodName, "methodName"));
-    lastInvocation = null;
+    scope().lastInvocation = null;
   }
 
   public static void reset(Object mock) {
     requireState(mock).reset();
-    lastInvocation = null;
-    verification = null;
-    stubbing = null;
-    MATCHERS.clear();
+    scope().lastInvocation = null;
+    scope().verification = null;
+    scope().stubbing = null;
+    scope().matchers.clear();
   }
 
   @SuppressWarnings("unchecked")
@@ -347,18 +386,18 @@ public final class MockRuntime {
     state.requireActive();
     InvocationPattern pattern = consumePattern(method, arguments);
 
-    if (stubbing != null) {
+    if (scope().stubbing != null) {
       applyStubbing(state, pattern);
       return null;
     }
-    if (verification != null) {
+    if (scope().verification != null) {
       verify(state, pattern);
       return null;
     }
 
     Invocation invocation = new Invocation(state.mock(), method, arguments);
     state.record(invocation);
-    lastInvocation = new LastInvocation(state, invocation, pattern);
+    scope().lastInvocation = new LastInvocation(state, invocation, pattern);
 
     Stub stub = state.findStub(method, arguments);
     return stub == null ? REAL_CALL : stub.answer(invocation);
@@ -369,8 +408,8 @@ public final class MockRuntime {
   }
 
   private static void applyStubbing(MockState state, InvocationPattern pattern) {
-    StubbingRequest request = stubbing;
-    stubbing = null;
+    StubbingRequest request = scope().stubbing;
+    scope().stubbing = null;
     if (request.state != state) {
       throw new IllegalStateException(
           "The call after when(mock) must be made on the same mock");
@@ -382,8 +421,8 @@ public final class MockRuntime {
   }
 
   private static void verify(MockState state, InvocationPattern pattern) {
-    VerificationRequest request = verification;
-    verification = null;
+    VerificationRequest request = scope().verification;
+    scope().verification = null;
     if (request.state != state) {
       throw new IllegalStateException("verify() must be followed by a call on the same mock");
     }
@@ -415,22 +454,22 @@ public final class MockRuntime {
    * applied to the next mock call instead.
    */
   private static void requireNoPendingMatchers(String operation) {
-    if (MATCHERS.isEmpty()) {
+    if (scope().matchers.isEmpty()) {
       return;
     }
-    List<RegisteredMatcher> pending = new ArrayList<>(MATCHERS);
-    MATCHERS.clear();
+    List<RegisteredMatcher> pending = new ArrayList<>(scope().matchers);
+    scope().matchers.clear();
     throw new IllegalStateException(
         operation + " found " + pending.size() + " argument matcher(s) left over: " + pending
             + ". A matcher belongs inside a call on a mock, as in verify(mock).save(any()).");
   }
 
-  /** Records that a verification accounted for these calls. */
+  /** Records that a scope().verification accounted for these calls. */
   public static void markVerified(Object mock, List<Invocation> matched) {
     requireState(mock).markVerified(matched);
   }
 
-  /** Fails when any call on these mocks has not been accounted for by a verification. */
+  /** Fails when any call on these mocks has not been accounted for by a scope().verification. */
   public static void verifyNoMoreInteractions(Object... mocks) {
     for (Object mock : mocks) {
       List<Invocation> remaining = requireState(mock).unverified();
@@ -459,24 +498,24 @@ public final class MockRuntime {
   /** Fails when a matcher was registered but never consumed. */
   public static void validateUsage() {
     List<String> unfinished = new ArrayList<>();
-    if (!MATCHERS.isEmpty()) {
-      unfinished.add(MATCHERS.size() + " argument matcher(s) left over: " + MATCHERS);
+    if (!scope().matchers.isEmpty()) {
+      unfinished.add(scope().matchers.size() + " argument matcher(s) left over: " + scope().matchers);
     }
-    if (verification != null) {
+    if (scope().verification != null) {
       unfinished.add("verify(mock) was not followed by a method call");
     }
-    if (stubbing != null) {
+    if (scope().stubbing != null) {
       unfinished.add("when(mock) was not followed by a method call");
     }
-    if (nextStubIsLenient) {
+    if (scope().nextStubIsLenient) {
       unfinished.add("lenient() was not followed by when(mock.method())");
     }
 
-    MATCHERS.clear();
-    verification = null;
-    stubbing = null;
-    nextStubIsLenient = false;
-    lastInvocation = null;
+    scope().matchers.clear();
+    scope().verification = null;
+    scope().stubbing = null;
+    scope().nextStubIsLenient = false;
+    scope().lastInvocation = null;
 
     if (!unfinished.isEmpty()) {
       throw new IllegalStateException(
@@ -494,15 +533,15 @@ public final class MockRuntime {
     List<Object> subjects;
     if (mocks.length == 0) {
       // Drained before the check, so that a failure here does not carry into the next test.
-      subjects = new ArrayList<>(UNCHECKED_MOCKS);
-      UNCHECKED_MOCKS.clear();
+      subjects = new ArrayList<>(scope().uncheckedMocks);
+      scope().uncheckedMocks.clear();
     } else {
       subjects = Arrays.asList(mocks);
     }
 
     StringBuilder report = new StringBuilder();
     for (Object mock : subjects) {
-      MockState state = STATES.get(mock);
+      MockState state = scope().states.get(mock);
       if (state == null) {
         throw new IllegalArgumentException("Object is not a Mockatcha mock");
       }
@@ -533,16 +572,16 @@ public final class MockRuntime {
 
   /** Removes the most recently registered matcher, so a combining matcher can wrap it. */
   public static RegisteredMatcher takeLastMatcher() {
-    if (MATCHERS.isEmpty()) {
+    if (scope().matchers.isEmpty()) {
       throw new IllegalStateException(
           "A combining matcher needs matchers to combine, as in and(gt(2), lt(9))");
     }
-    return MATCHERS.remove(MATCHERS.size() - 1);
+    return scope().matchers.remove(scope().matchers.size() - 1);
   }
 
   private static InvocationPattern consumePattern(String method, Object[] arguments) {
     List<RegisteredMatcher> argumentMatchers;
-    if (MATCHERS.isEmpty()) {
+    if (scope().matchers.isEmpty()) {
       argumentMatchers = new ArrayList<>(arguments.length);
       for (Object argument : arguments) {
         argumentMatchers.add(
@@ -550,9 +589,9 @@ public final class MockRuntime {
                 actual -> Objects.deepEquals(argument, actual), String.valueOf(argument)));
       }
     } else {
-      if (MATCHERS.size() != arguments.length) {
-        int matcherCount = MATCHERS.size();
-        MATCHERS.clear();
+      if (scope().matchers.size() != arguments.length) {
+        int matcherCount = scope().matchers.size();
+        scope().matchers.clear();
         throw new IllegalStateException(
             "When matchers are used, every argument must use one: received "
                 + matcherCount
@@ -560,8 +599,8 @@ public final class MockRuntime {
                 + arguments.length
                 + " argument(s)");
       }
-      argumentMatchers = new ArrayList<>(MATCHERS);
-      MATCHERS.clear();
+      argumentMatchers = new ArrayList<>(scope().matchers);
+      scope().matchers.clear();
     }
     return InvocationPattern.of(method, argumentMatchers);
   }
@@ -602,7 +641,7 @@ public final class MockRuntime {
   }
 
   private static MockState requireState(Object mock) {
-    MockState state = STATES.get(mock);
+    MockState state = scope().states.get(mock);
     if (state == null) {
       throw new IllegalArgumentException("Object is not a Mockatcha mock");
     }

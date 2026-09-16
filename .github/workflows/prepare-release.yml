@@ -36,6 +36,13 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Check out the shared development parent
+        uses: actions/checkout@v4
+        with:
+          repository: instanto-io/instanto-poms
+          path: .build/instanto-poms
+      - name: Install the shared development parent
+        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
       - name: Check versions and branch state
         shell: bash
         run: |

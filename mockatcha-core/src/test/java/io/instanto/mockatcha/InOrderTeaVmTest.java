@@ -22,13 +22,11 @@ import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Ordered verification, following Mockito's rules. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class InOrderTeaVmTest {
+public class InOrderTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void acceptsCallsMadeInTheExpectedOrder() {

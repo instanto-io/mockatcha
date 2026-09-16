@@ -23,12 +23,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class MockatchaTeaVmTest {
+public class MockatchaTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void stubsAndVerifiesAnInterfaceWithMockitoShapedCalls() {

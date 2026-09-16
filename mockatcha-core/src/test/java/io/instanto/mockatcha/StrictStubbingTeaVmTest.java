@@ -20,13 +20,11 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Reporting stubs that no call ever matched. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class StrictStubbingTeaVmTest {
+public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
 
   @After
   public void forgetMocksFromThisTest() {

@@ -18,6 +18,8 @@ import org.teavm.junit.TeaVMTestRunner;
 
 /** The checks a test inherits by extending {@link StrictTest}. */
 @RunWith(TeaVMTestRunner.class)
+// TeaVMTestRunner collects an inherited @Before once per class in the hierarchy, so StrictTest's
+// setup runs twice on the JVM and the second session() call reports a nested session.
 @SkipJVM
 public class StrictTestBaseTeaVmTest extends StrictTest {
 

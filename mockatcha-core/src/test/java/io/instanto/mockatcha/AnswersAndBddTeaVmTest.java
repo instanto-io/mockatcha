@@ -28,13 +28,11 @@ import static org.junit.Assert.assertThrows;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Answers built from the call, and the given-when-then spelling of the same API. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class AnswersAndBddTeaVmTest {
+public class AnswersAndBddTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void returnsAnArgumentBackToTheCaller() {

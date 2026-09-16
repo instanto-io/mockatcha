@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /**
@@ -23,8 +22,7 @@ import org.teavm.junit.TeaVMTestRunner;
  * verification failures.
  */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
-public class SubclassGenerationTeaVmTest {
+public class SubclassGenerationTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void generatedSubclassOverridesTheRealMethod() {
