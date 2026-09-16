@@ -61,7 +61,8 @@ chapter:
 
 ## Minimal setup
 
-Add Mockatcha Core to the test classpath:
+Add Mockatcha Core to the test classpath, alongside JUnit 4, which Mockatcha
+uses and does not supply:
 
 ```xml
 <dependency>
@@ -71,6 +72,10 @@ Add Mockatcha Core to the test classpath:
   <scope>test</scope>
 </dependency>
 ```
+
+A test that runs through TeaVM also needs `org.teavm:teavm-classlib` and
+`org.teavm:teavm-junit`. The
+[getting-started chapter](docs/getting-started.md) lists both classpaths in full.
 
 On a JVM the test is an ordinary JUnit test:
 

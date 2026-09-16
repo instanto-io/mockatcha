@@ -43,7 +43,8 @@ rules there:
 
 ## Add the dependencies
 
-Add Mockatcha Core to the test classpath:
+Add Mockatcha Core and JUnit 4 to the test classpath. Mockatcha uses JUnit 4 and
+does not supply it:
 
 ```xml
 <dependency>
@@ -52,13 +53,43 @@ Add Mockatcha Core to the test classpath:
   <version>0.1.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
+
+<dependency>
+  <groupId>junit</groupId>
+  <artifactId>junit</artifactId>
+  <version>4.13.2</version>
+  <scope>test</scope>
+</dependency>
 ```
 
-With JUnit, that is everything a JVM test needs. Mockatcha brings what it uses
-to build a mock, and a JVM test loads no TeaVM class.
+That is everything a JVM test needs. Mockatcha brings what it uses to build a
+mock, and a JVM test loads no TeaVM class.
 
-A test that runs through TeaVM also needs `teavm-classlib` and `teavm-junit` on
-the test classpath. Configure Surefire to send those tests to a browser:
+A test that runs through TeaVM needs TeaVM's class library and its JUnit runner
+as well:
+
+```xml
+<dependency>
+  <groupId>org.teavm</groupId>
+  <artifactId>teavm-classlib</artifactId>
+  <version>0.15.0</version>
+  <scope>test</scope>
+</dependency>
+
+<dependency>
+  <groupId>org.teavm</groupId>
+  <artifactId>teavm-junit</artifactId>
+  <version>0.15.0</version>
+  <scope>test</scope>
+</dependency>
+```
+
+To use `@Rule` in a TeaVM test, add `io.instanto:teavm-rule-support` and declare
+it before `teavm-junit`. Without it the runner still runs `@Before`, `@Test` and
+`@After`, but ignores rules. See
+[Strictness and lifecycle](strictness-and-lifecycle.md).
+
+Configure Surefire to send those tests to a browser:
 
 ```xml
 <systemPropertyVariables>
