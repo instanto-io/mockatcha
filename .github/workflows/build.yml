@@ -12,27 +12,15 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - name: Check out the shared development parent
-        uses: actions/checkout@v4
-        with:
-          repository: instanto-io/instanto-poms
-          path: .build/instanto-poms
-      - name: Install the shared development parent
-        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
-      - name: Verify core and examples in Chrome
-        run: ./mvnw --batch-mode --no-transfer-progress --errors --fail-at-end clean test
+    uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
+    with:
+      name: Verify core and examples in Chrome
+      goals: clean test
+    secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
   cross-browser:
     name: Browser tests (${{ matrix.browser_name }})
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -41,45 +29,21 @@ jobs:
             runner: browser-chrome
           - browser_name: Firefox
             runner: browser-firefox
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - name: Check out the shared development parent
-        uses: actions/checkout@v4
-        with:
-          repository: instanto-io/instanto-poms
-          path: .build/instanto-poms
-      - name: Install the shared development parent
-        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
-      - name: Verify the reactor in this browser
-        run: >-
-          ./mvnw --batch-mode --no-transfer-progress --errors --fail-at-end
-          -Dmockatcha.test.browser=${{ matrix.runner }} test
+    uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
+    with:
+      name: Verify the reactor in ${{ matrix.browser_name }}
+      goals: test
+      maven-args: -Dmockatcha.test.browser=${{ matrix.runner }}
+    secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
   publish-snapshot:
     if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [verify, cross-browser]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - name: Check out the shared development parent
-        uses: actions/checkout@v4
-        with:
-          repository: instanto-io/instanto-poms
-          path: .build/instanto-poms
-      - name: Install the shared development parent
-        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
-      - name: Publish Maven snapshot
-        run: ./mvnw --settings .github/maven-settings.xml --batch-mode --no-transfer-progress --errors --fail-at-end -DskipTests deploy
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
+    with:
+      name: Publish Maven snapshot
+      goals: deploy
+      maven-args: -DskipTests
+    secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
