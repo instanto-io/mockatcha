@@ -35,9 +35,18 @@ jobs:
       maven-args: -Dmockatcha.test.browser=${{ matrix.runner }}
     secrets: inherit
 
+  wasm:
+    name: WasmGC
+    uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
+    with:
+      name: Verify the reactor compiled to WasmGC
+      goals: test
+      maven-args: -Dteavm.junit.wasm-gc=true -Dteavm.junit.wasm-gc.runner=browser-chrome -Dteavm.junit.js=false
+    secrets: inherit
+
   publish-snapshot:
     if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [verify, cross-browser]
+    needs: [verify, cross-browser, wasm]
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Publish Maven snapshot
