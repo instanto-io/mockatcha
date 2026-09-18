@@ -16,8 +16,7 @@ jobs:
     with:
       name: Verify core and examples in Chrome
       goals: clean test
-    secrets:
-      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+    secrets: inherit
 
   cross-browser:
     name: Browser tests (${{ matrix.browser_name }})
@@ -34,8 +33,7 @@ jobs:
       name: Verify the reactor in ${{ matrix.browser_name }}
       goals: test
       maven-args: -Dmockatcha.test.browser=${{ matrix.runner }}
-    secrets:
-      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+    secrets: inherit
 
   publish-snapshot:
     if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -45,5 +43,4 @@ jobs:
       name: Publish Maven snapshot
       goals: deploy
       maven-args: -DskipTests
-    secrets:
-      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+    secrets: inherit
