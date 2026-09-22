@@ -123,9 +123,8 @@ mvn test -Dmockatcha.test.browser=browser-firefox
 
 That setting expects the external command `firefox` to be available instead.
 
-Downstream projects can use the artifacts published to GitHub Packages. Public
-package visibility allows CI and team builds to resolve them without access to
-this repository.
+Downstream projects can use the snapshots published at `packages.instanto.io`.
+The registry serves all Instanto artifacts by Maven coordinate from one URL.
 
 When working from a clone, install the artifacts locally first:
 

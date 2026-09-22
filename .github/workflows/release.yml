@@ -23,6 +23,8 @@ jobs:
       commit: ${{ steps.branch.outputs.commit }}
     env:
       RELEASE_VERSION: ${{ inputs.release_version }}
+      FORGEJO_PACKAGE_USER: ${{ secrets.FORGEJO_PACKAGE_USER }}
+      FORGEJO_PACKAGE_TOKEN: ${{ secrets.FORGEJO_PACKAGE_TOKEN }}
     steps:
       - name: Check release version
         shell: bash
@@ -38,13 +40,9 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Check out the shared development parent
-        uses: actions/checkout@v4
-        with:
-          repository: instanto-io/instanto-poms
-          path: .build/instanto-poms
-      - name: Install the shared development parent
-        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
+          server-id: forgejo
+          server-username: FORGEJO_PACKAGE_USER
+          server-password: FORGEJO_PACKAGE_TOKEN
       - name: Check the branch matches the requested release
         id: branch
         shell: bash
@@ -63,6 +61,9 @@ jobs:
   upload:
     needs: check
     runs-on: ubuntu-latest
+    env:
+      FORGEJO_PACKAGE_USER: ${{ secrets.FORGEJO_PACKAGE_USER }}
+      FORGEJO_PACKAGE_TOKEN: ${{ secrets.FORGEJO_PACKAGE_TOKEN }}
     environment: maven-central
     steps:
       - uses: actions/checkout@v7
@@ -75,13 +76,9 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Check out the shared development parent
-        uses: actions/checkout@v4
-        with:
-          repository: instanto-io/instanto-poms
-          path: .build/instanto-poms
-      - name: Install the shared development parent
-        run: ./mvnw -B -ntp -f .build/instanto-poms/pom.xml install
+          server-id: forgejo
+          server-username: FORGEJO_PACKAGE_USER
+          server-password: FORGEJO_PACKAGE_TOKEN
       - name: Build, sign and upload for Central validation
         env:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}

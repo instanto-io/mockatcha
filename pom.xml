@@ -43,25 +43,13 @@
   <!-- JUnit rule support is a separate library now. -->
   <repositories>
     <repository>
-      <id>github-teavm-rule-support</id>
-      <url>https://maven.pkg.github.com/instanto-io/teavm-rule-support</url>
-      <releases><enabled>true</enabled></releases>
+      <id>forgejo</id>
+      <name>Instanto snapshots</name>
+      <url>https://packages.instanto.io/api/packages/instanto-io/maven</url>
+      <releases><enabled>false</enabled></releases>
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
   </repositories>
-
-  <distributionManagement>
-    <repository>
-      <id>github-mockatcha</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/instanto-io/mockatcha</url>
-    </repository>
-    <snapshotRepository>
-      <id>github-mockatcha</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/instanto-io/mockatcha</url>
-    </snapshotRepository>
-  </distributionManagement>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
