@@ -40,7 +40,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-          server-id: forgejo
+          server-id: forgejo-instanto
           server-username: FORGEJO_PACKAGE_USER
           server-password: FORGEJO_PACKAGE_TOKEN
       - name: Check the branch matches the requested release
@@ -76,7 +76,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-          server-id: forgejo
+          server-id: forgejo-instanto
           server-username: FORGEJO_PACKAGE_USER
           server-password: FORGEJO_PACKAGE_TOKEN
       - name: Build, sign and upload for Central validation
