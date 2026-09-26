@@ -19,9 +19,9 @@ standalone reference.
 
 | Guide | Use it for |
 | --- | --- |
-| [BDD helpers](../mockatcha-bdd/README.md) | Method-name stubbing, call logs, additional matchers, and controlled browser time. |
+| [BDD helpers](../mockatcha-bdd/README.md) | Method-name stubbing, call logs and additional matchers. |
 | [DOM testing](https://github.com/instanto-io/webapp-testkit) | Accessible queries, interactions, asynchronous rendering, assertions, and frames. |
-| [Webapp testkit](https://github.com/instanto-io/webapp-testkit) | Extending Mockatcha DOM and TeaVM's test runner to applications built with any web stack. |
+| [Webapp testkit](https://github.com/instanto-io/webapp-testkit) | Testing applications built with any web stack through a TeaVM browser test. |
 | JUnit rules for TeaVM (`io.instanto:teavm-rule-support`) | Running ordinary JUnit `TestRule` fields and methods through TeaVM. |
 
 ## Examples
@@ -34,8 +34,3 @@ is exercised by the [webapp testkit](https://github.com/instanto-io/webapp-testk
 own tests and has no TeaVM dependency of its own.
 
 [Back to the project README](../README.md)
-
-## Maintaining a release
-
-The [release guide](releasing.md) covers Maven Central requirements, signing,
-local bundle checks and publication approval.

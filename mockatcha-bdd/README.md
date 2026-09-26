@@ -12,16 +12,7 @@ assertEquals("EUR", pricing.currency());
 assertEquals(1, calls(pricing, "currency").count());
 ```
 
-## Add the module
-
-```xml
-<dependency>
-  <groupId>io.instanto</groupId>
-  <artifactId>mockatcha-bdd</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
-  <scope>test</scope>
-</dependency>
-```
+## Use the module
 
 The module includes `mockatcha-core`. Its main entry points are static methods:
 
