@@ -62,11 +62,9 @@ example, imports, TeaVM dependencies, and Surefire configuration.
 - **A JVM**, for code that needs no browser.
 - **A browser**, through TeaVM and its JUnit runner, for code that uses timers,
   the DOM, canvas, storage, or another browser API.
-- **Another runtime that runs TeaVM output.** Mockatcha is part of the compiled
-  program rather than something the host provides, so it runs where that program
-  runs. Tests for Cloudflare Workers run this way today, under a Miniflare
-  runner. Whether any other host works is a question about running TeaVM output
-  there, not about Mockatcha.
+- **Other JavaScript runtimes**, including edge runtimes. TeaVM code and its tests
+  can run in any JavaScript runtime that supports the APIs they use. Sarto Edge's
+  `MiniflareTestRunner` uses this to test edge services in Miniflare.
 
 ## Limitations
 

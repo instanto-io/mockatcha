@@ -17,10 +17,8 @@ Run it through TeaVM when:
 - the assertion concerns JavaScript produced by TeaVM, such as emulated `long`
   arithmetic, collection iteration order, or browser date and number formats.
 
-A TeaVM test usually runs in a browser, but it runs wherever that compiled
-output runs. Tests for Cloudflare Workers run under a Miniflare runner, and
-Mockatcha needs nothing from the host to work there, because it is compiled into
-the program.
+A TeaVM test can run in any JavaScript runtime that supports the APIs it uses.
+Sarto Edge's `MiniflareTestRunner` uses this to test edge services in Miniflare.
 
 ## How a mock is made
 
