@@ -66,28 +66,6 @@ example, imports, TeaVM dependencies, and Surefire configuration.
   can run in any JavaScript runtime that supports the APIs they use. Sarto Edge's
   `MiniflareTestRunner` uses this to test edge services in Miniflare.
 
-## Limitations
-
-On a JVM:
-
-- Mocking a class needs its package open to Mockatcha, which is the case on the
-  class path and not inside a strong module.
-- A type that cannot be subclassed, such as a final class or one without a
-  no-argument constructor, is rejected when the test runs.
-- Mocking state is held per thread. Mocks a test creates outside a session stay
-  on that thread until something checks or releases them, because one process
-  runs the whole suite. See `releaseMocks` in
-  [Strictness and lifecycle](docs/strictness-and-lifecycle.md).
-
-Under TeaVM:
-
-- The class passed to `mock` or `spy` must be a class literal, since the mock is
-  generated while the program compiles.
-- A type that cannot be subclassed is reported while TeaVM compiles, rather than
-  when the test runs.
-- JUnit rules need the `teavm-rule-support` module. `StrictTest` is the fallback
-  where that cannot be installed.
-
 ## Explore the modules
 
 | Module | Use it for |
@@ -122,6 +100,37 @@ The examples module tests a `TimesheetService` with mocked storage and approval
 boundaries, a concrete-class spy, and a browser canvas. Its
 [reading order and run command](mockatcha-examples/README.md) cover the public
 API from basic stubbing through browser-specific tests.
+
+## A few things to know
+
+**Interfaces are straightforward to mock.** For a class, Mockatcha creates a
+subclass and calls its no-argument constructor. The class must not be `final`,
+and static, private and final methods keep their real behaviour. For example,
+`mock(PriceService.class)` needs a non-final `PriceService` with a
+no-argument constructor. See [mocks and spies](docs/mocks-and-spies.md) for
+the full class rules.
+
+**TeaVM needs the type written directly in the test.** Use
+`mock(PriceService.class)` or `spy(PriceService.class, realService)`.
+Mockatcha generates the mock while TeaVM compiles the test, so it cannot choose
+the type from a `Class` variable at runtime. If a class cannot be mocked, TeaVM
+reports it during compilation; a JVM reports it when the test runs.
+
+**Keep each test's mocks separate.** In a JUnit test, `MockatchaRule` checks
+and clears mock state after the test:
+
+```java
+@Rule
+public MockatchaRule mockatcha = new MockatchaRule();
+```
+
+TeaVM tests need [TeaVM rule support](https://github.com/instanto-io/teavm-rule-support)
+to run JUnit rules. If that is unavailable, extend `StrictTest` instead.
+For other test harnesses, use `MockatchaSession`. On a JVM using named Java
+modules, open the mocked class's package to Mockatcha or mock an interface;
+ordinary classpath tests need no extra setting. See
+[strictness and lifecycle](docs/strictness-and-lifecycle.md) for cleanup
+choices, including `releaseMocks()`.
 
 ## Credits
 
