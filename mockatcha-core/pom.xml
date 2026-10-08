@@ -15,6 +15,12 @@
   <description>Mocking for TeaVM tests, following Mockito's API, generated ahead of time.</description>
 
   <dependencies>
+        <!-- Keep before teavm-junit: includes the rule-aware runner and lifecycle fix. -->
+        <dependency>
+            <groupId>io.instanto</groupId>
+            <artifactId>instanto-teavm-extensions</artifactId>
+            <scope>test</scope>
+        </dependency>
     <dependency>
       <!-- Writes the subclass used to mock a class on the JVM; TeaVM generates its own. -->
       <groupId>org.ow2.asm</groupId>

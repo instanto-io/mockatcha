@@ -28,8 +28,7 @@
     <!-- Declared before teavm-junit so its copies of the runner classes win on the classpath. -->
     <dependency>
       <groupId>io.instanto</groupId>
-      <artifactId>teavm-rule-support</artifactId>
-      <version>${teavm-rule-support.version}</version>
+      <artifactId>instanto-teavm-extensions</artifactId>
       <scope>test</scope>
     </dependency>
     <!-- The sparkline example draws to a canvas, so the browser APIs are compiled in. -->

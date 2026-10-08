@@ -75,7 +75,7 @@ example, imports, TeaVM dependencies, and Surefire configuration.
 | `mockatcha-examples` | [Executable examples](mockatcha-examples/README.md). |
 
 [Webapp Testkit](https://github.com/instanto-io/webapp-testkit) provides DOM
-queries and browser interactions; [TeaVM rule support](https://github.com/instanto-io/teavm-rule-support)
+queries and browser interactions; [TeaVM rule support](https://github.com/instanto-io/instanto-teavm)
 applies JUnit rules in TeaVM tests. Both are separate libraries.
 
 ## Documentation
@@ -124,7 +124,7 @@ and clears mock state after the test:
 public MockatchaRule mockatcha = new MockatchaRule();
 ```
 
-TeaVM tests need [TeaVM rule support](https://github.com/instanto-io/teavm-rule-support)
+TeaVM tests need [TeaVM rule support](https://github.com/instanto-io/instanto-teavm)
 to run JUnit rules. If that is unavailable, extend `StrictTest` instead.
 For other test harnesses, use `MockatchaSession`. On a JVM using named Java
 modules, open the mocked class's package to Mockatcha or mock an interface;
