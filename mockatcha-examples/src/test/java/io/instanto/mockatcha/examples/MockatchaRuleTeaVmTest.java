@@ -20,8 +20,8 @@ import org.teavm.junit.TeaVMTestRunner;
 /**
  * Mockatcha's checks as a rule, in a module that only depends on the fix.
  *
- * <p>Nothing here registers anything: having {@code teavm-rule-support} on the test classpath,
- * ahead of {@code teavm-junit}, is enough.
+ * <p>Nothing here registers anything: having {@code instanto-teavm-extensions} on the test
+ * classpath, ahead of {@code teavm-junit}, is enough.
  */
 @RunWith(TeaVMTestRunner.class)
 @SkipJVM

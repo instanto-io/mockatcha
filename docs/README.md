@@ -22,7 +22,7 @@ standalone reference.
 | [BDD helpers](../mockatcha-bdd/README.md) | Method-name stubbing, call logs and additional matchers. |
 | [DOM testing](https://github.com/instanto-io/webapp-testkit) | Accessible queries, interactions, asynchronous rendering, assertions, and frames. |
 | [Webapp testkit](https://github.com/instanto-io/webapp-testkit) | Testing applications built with any web stack through a TeaVM browser test. |
-| JUnit rules for TeaVM (`io.instanto:teavm-rule-support`) | Running ordinary JUnit `TestRule` fields and methods through TeaVM. |
+| JUnit rules for TeaVM (`io.instanto:instanto-teavm-extensions`) | Running ordinary JUnit `TestRule` fields and methods through TeaVM. |
 
 ## Examples
 

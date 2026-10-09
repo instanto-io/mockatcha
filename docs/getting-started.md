@@ -82,7 +82,7 @@ as well:
 </dependency>
 ```
 
-To use `@Rule` in a TeaVM test, add `io.instanto:teavm-rule-support` and declare
+To use `@Rule` in a TeaVM test, add `io.instanto:instanto-teavm-extensions` and declare
 it before `teavm-junit`. Without it the runner still runs `@Before`, `@Test` and
 `@After`, but ignores rules. See
 [Strictness and lifecycle](strictness-and-lifecycle.md).

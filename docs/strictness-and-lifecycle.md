@@ -67,7 +67,7 @@ attaches lifecycle failures as suppressed exceptions. The test class remains
 free to extend another class.
 
 TeaVM's runner needs the reusable
-separate [`io.instanto:teavm-rule-support`](https://github.com/instanto-io/teavm-rule-support) library to execute JUnit
+separate [`io.instanto:instanto-teavm-extensions`](https://github.com/instanto-io/instanto-teavm) library to execute JUnit
 rules. Put it on the test classpath ahead of `teavm-junit`. The module is
 independent of Mockatcha and supports ordinary `TestRule` use in other
 TeaVM/JUnit projects.
@@ -75,7 +75,7 @@ TeaVM/JUnit projects.
 ## Use `StrictTest` as a compatibility fallback
 
 `StrictTest` is a Mockatcha class, not a JUnit or TeaVM API. Use it when a
-project cannot install `teavm-rule-support`, or when an older runner executes
+project cannot install `instanto-teavm-extensions`, or when an older runner executes
 inherited `@Before` and `@After` methods but ignores JUnit rules:
 
 ```java
@@ -107,7 +107,7 @@ be reused by a later test. Sessions cannot be nested, including inside
 
 | Test environment | Lifecycle |
 | --- | --- |
-| JUnit with `teavm-rule-support` | `MockatchaRule` |
+| JUnit with `instanto-teavm-extensions` | `MockatchaRule` |
 | JUnit without rule support | `StrictTest` |
 | Non-JUnit or custom harness | `MockatchaSession` in try-with-resources |
 
