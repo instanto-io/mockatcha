@@ -15,7 +15,7 @@ jobs:
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Verify core and examples in Chrome
-      goals: clean test
+      goals: -U clean test
     secrets: inherit
 
   cross-browser:
@@ -31,7 +31,7 @@ jobs:
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Verify the reactor in ${{ matrix.browser_name }}
-      goals: test
+      goals: -U test
       maven-args: -Dmockatcha.test.browser=${{ matrix.runner }}
     secrets: inherit
 
@@ -40,7 +40,7 @@ jobs:
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Verify the reactor compiled to WasmGC
-      goals: test
+      goals: -U test
       maven-args: -Dteavm.junit.wasm-gc=true -Dteavm.junit.wasm-gc.runner=browser-chrome -Dteavm.junit.js=false
     secrets: inherit
 
@@ -50,6 +50,6 @@ jobs:
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Publish Maven snapshot
-      goals: deploy
+      goals: -U deploy
       maven-args: -DskipTests
     secrets: inherit
