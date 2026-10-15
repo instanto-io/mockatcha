@@ -113,9 +113,11 @@ public final class TeaVmMocks {
       IntrospectClass<T> type, Value<MockState> state, Value<T> delegate) {
     String rejection = SubclassGenerator.rejectionReason(type);
     if (rejection != null) {
-      environment()
-          .diagnostics()
-          .error(currentLocation(), "Mockatcha cannot mock this type: " + rejection);
+      // TeaVM generates a mock for every class the program could pass here, including classes no
+      // test ever mocks, so an unsupported class is refused when a mock of it is made, as on the
+      // JVM, rather than failing the compilation.
+      String message = "Mockatcha cannot mock this type: " + rejection;
+      emit(() -> MockRuntime.refuseMock(message));
       return null;
     }
 

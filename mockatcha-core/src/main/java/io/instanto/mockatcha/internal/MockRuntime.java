@@ -29,9 +29,9 @@ public final class MockRuntime {
    * The mocks and the part-finished stubbing or verification belonging to one thread.
    *
    * <p>A test arranges a mock, calls it and checks it as one sequence, so this state belongs to
-   * whoever is running that sequence. Held per thread, two tests running at once no longer read each
-   * other's half-finished work. TeaVM runs tests on its main thread, where its ThreadLocal reads a
-   * field rather than a map, so nothing here costs more there than a static field did.
+   * whoever is running that sequence. Held per thread, two tests running at once no longer read
+   * each other's half-finished work. TeaVM runs tests on its main thread, where its ThreadLocal
+   * reads a field rather than a map, so nothing here costs more there than a static field did.
    */
   private static final class Scope {
     private final Map<Object, MockState> states = new IdentityHashMap<>();
@@ -79,8 +79,8 @@ public final class MockRuntime {
   /**
    * Reports whether a generated method should hand this call to the real object.
    *
-   * <p>A mock has no delegate, so an unstubbed call on one is where strict scope().stubbing looks for a
-   * stub that was meant for it.
+   * <p>A mock has no delegate, so an unstubbed call on one is where strict scope().stubbing looks
+   * for a stub that was meant for it.
    */
   public static boolean callsReal(
       MockState state, String method, Object[] arguments, Object dispatchResult, Object delegate) {
@@ -94,7 +94,9 @@ public final class MockRuntime {
     return false;
   }
 
-  /** Turns on failing at the call when a stub for the same method was arranged but did not match. */
+  /**
+   * Turns on failing at the call when a stub for the same method was arranged but did not match.
+   */
   public static void strictStubs(boolean strict) {
     scope().strictStubs = strict;
   }
@@ -219,6 +221,11 @@ public final class MockRuntime {
   }
 
   /** Rejects a spy created without a delegate. */
+  /** Refuses a mock of a class Mockatcha cannot mock, as the JVM implementation does. */
+  public static void refuseMock(String message) {
+    throw new UnsupportedOperationException(message);
+  }
+
   public static <T> T requireDelegate(T delegate) {
     if (delegate == null) {
       throw new IllegalArgumentException("spy() requires a real object to delegate to");
@@ -228,19 +235,20 @@ public final class MockRuntime {
 
   @SuppressWarnings("unchecked")
   public static void registerMatcher(ArgumentMatcher<?> matcher, String description) {
-    scope().matchers.add(
-        new RegisteredMatcher((ArgumentMatcher<Object>) matcher, description));
+    scope().matchers.add(new RegisteredMatcher((ArgumentMatcher<Object>) matcher, description));
   }
 
   /** Registers a matcher whose side effect is committed only after the whole invocation matches. */
   @SuppressWarnings("unchecked")
   public static void registerMatcher(
       ArgumentMatcher<?> matcher, String description, Consumer<Object> onMatch) {
-    scope().matchers.add(
-        new RegisteredMatcher(
-            (ArgumentMatcher<Object>) matcher,
-            description,
-            Objects.requireNonNull(onMatch, "onMatch")));
+    scope()
+        .matchers
+        .add(
+            new RegisteredMatcher(
+                (ArgumentMatcher<Object>) matcher,
+                description,
+                Objects.requireNonNull(onMatch, "onMatch")));
   }
 
   public static Object invokeObject(MockState state, String method, Object[] arguments) {
@@ -256,7 +264,6 @@ public final class MockRuntime {
   public static Object dispatchSpy(MockState state, String method, Object[] arguments) {
     return dispatch(state, method, arguments);
   }
-
 
   public static boolean toBoolean(Object result) {
     return result != null && result != REAL_CALL && (Boolean) result;
@@ -328,7 +335,8 @@ public final class MockRuntime {
   public static void beginVerification(Object mock, VerificationMode mode) {
     MockState state = requireState(mock);
     requireNoPendingMatchers("verify()");
-    scope().verification = new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
+    scope().verification =
+        new VerificationRequest(state, Objects.requireNonNull(mode, "mode"), null);
     scope().lastInvocation = null;
   }
 
@@ -411,8 +419,7 @@ public final class MockRuntime {
     StubbingRequest request = scope().stubbing;
     scope().stubbing = null;
     if (request.state != state) {
-      throw new IllegalStateException(
-          "The call after when(mock) must be made on the same mock");
+      throw new IllegalStateException("The call after when(mock) must be made on the same mock");
     }
     Stub stub = newStub(state, pattern);
     for (Answer<?> answer : request.answers) {
@@ -460,7 +467,11 @@ public final class MockRuntime {
     List<RegisteredMatcher> pending = new ArrayList<>(scope().matchers);
     scope().matchers.clear();
     throw new IllegalStateException(
-        operation + " found " + pending.size() + " argument matcher(s) left over: " + pending
+        operation
+            + " found "
+            + pending.size()
+            + " argument matcher(s) left over: "
+            + pending
             + ". A matcher belongs inside a call on a mock, as in verify(mock).save(any()).");
   }
 
@@ -475,8 +486,10 @@ public final class MockRuntime {
       List<Invocation> remaining = requireState(mock).unverified();
       if (!remaining.isEmpty()) {
         throw new AssertionError(
-            stateDescription(mock) + ": wanted no further calls, but observed "
-                + remaining.get(0) + "."
+            stateDescription(mock)
+                + ": wanted no further calls, but observed "
+                + remaining.get(0)
+                + "."
                 + Failures.listOf(requireState(mock).invocations()));
       }
     }
@@ -488,8 +501,10 @@ public final class MockRuntime {
       List<Invocation> recorded = requireState(mock).invocations();
       if (!recorded.isEmpty()) {
         throw new AssertionError(
-            stateDescription(mock) + ": wanted no calls at all, but observed "
-                + recorded.get(0) + "."
+            stateDescription(mock)
+                + ": wanted no calls at all, but observed "
+                + recorded.get(0)
+                + "."
                 + Failures.listOf(recorded));
       }
     }
@@ -499,7 +514,8 @@ public final class MockRuntime {
   public static void validateUsage() {
     List<String> unfinished = new ArrayList<>();
     if (!scope().matchers.isEmpty()) {
-      unfinished.add(scope().matchers.size() + " argument matcher(s) left over: " + scope().matchers);
+      unfinished.add(
+          scope().matchers.size() + " argument matcher(s) left over: " + scope().matchers);
     }
     if (scope().verification != null) {
       unfinished.add("verify(mock) was not followed by a method call");
@@ -519,7 +535,8 @@ public final class MockRuntime {
 
     if (!unfinished.isEmpty()) {
       throw new IllegalStateException(
-          "validateUsage() found unfinished Mockatcha operations: " + unfinished
+          "validateUsage() found unfinished Mockatcha operations: "
+              + unfinished
               + ". Complete each operation in the test where it begins.");
     }
   }
@@ -565,7 +582,8 @@ public final class MockRuntime {
 
     if (report.length() > 0) {
       throw new AssertionError(
-          "These stubs were arranged but never used:" + report
+          "These stubs were arranged but never used:"
+              + report
               + "\nRemove them, correct their arguments, or arrange them with lenient().");
     }
   }
@@ -676,8 +694,7 @@ public final class MockRuntime {
     private final Invocation invocation;
     private final InvocationPattern pattern;
 
-    private LastInvocation(
-        MockState state, Invocation invocation, InvocationPattern pattern) {
+    private LastInvocation(MockState state, Invocation invocation, InvocationPattern pattern) {
       this.state = state;
       this.invocation = invocation;
       this.pattern = pattern;

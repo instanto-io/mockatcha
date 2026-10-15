@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import org.teavm.extension.introspect.IntrospectClass;
@@ -73,8 +74,7 @@ public class SubclassGeneratorRulesTest {
   @Test
   public void acceptsANestedClass() {
     assertNull(
-        SubclassGenerator.rejectionReason(
-            describe("com.example.Pricing$Rates", Modifier.PUBLIC)));
+        SubclassGenerator.rejectionReason(describe("com.example.Pricing$Rates", Modifier.PUBLIC)));
   }
 
   @Test
@@ -130,8 +130,8 @@ public class SubclassGeneratorRulesTest {
       Map<String, Object> answers = new HashMap<>();
       answers.put("name", name);
       answers.put("modifiers", modifiers);
-      if (method.getName().equals("declaredMethod")) {
-        return constructor == null ? null : constructorMethod();
+      if (method.getName().equals("declaredMethods")) {
+        return constructor == null ? List.of() : List.of(constructorMethod());
       }
       if (answers.containsKey(method.getName())) {
         return answers.get(method.getName());
@@ -149,9 +149,12 @@ public class SubclassGeneratorRulesTest {
               SubclassGeneratorRulesTest.class.getClassLoader(),
               new Class<?>[] {IntrospectMethod.class},
               (proxy, method, arguments) ->
-                  method.getName().equals("modifiers")
-                      ? constructorAccess
-                      : method.getReturnType() == boolean.class ? false : null);
+                  switch (method.getName()) {
+                    case "modifiers" -> constructorAccess;
+                    case "isConstructor" -> true;
+                    case "parameters" -> List.of();
+                    default -> method.getReturnType() == boolean.class ? false : null;
+                  });
     }
   }
 }

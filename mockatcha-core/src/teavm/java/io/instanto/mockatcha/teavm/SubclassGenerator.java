@@ -102,7 +102,7 @@ public final class SubclassGenerator {
     if (isAnonymous(name)) {
       return name + " is an anonymous or local class";
     }
-    IntrospectMethod constructor = type.declaredMethod("<init>");
+    IntrospectMethod constructor = declaredConstructor(type);
     if (constructor == null) {
       return name
           + " has no no-argument constructor, and Mockatcha cannot allocate an object without"
@@ -112,6 +112,37 @@ public final class SubclassGenerator {
       return name + " has a private no-argument constructor";
     }
     return null;
+  }
+
+  /**
+   * The class's own constructor taking exactly these parameter types, or null when it has none.
+   *
+   * <p>It is found among the class's declared methods, because TeaVM 0.16.0's {@code
+   * declaredMethod(...)} fails with a NullPointerException once {@code declaredMethods()} has been
+   * read for the same class.
+   */
+  private static IntrospectMethod declaredConstructor(
+      IntrospectClass<?> type, IntrospectClass<?>... parameterTypes) {
+    for (IntrospectMethod method : type.declaredMethods()) {
+      if (method.isConstructor() && hasParameterTypes(method, parameterTypes)) {
+        return method;
+      }
+    }
+    return null;
+  }
+
+  private static boolean hasParameterTypes(
+      IntrospectMethod method, IntrospectClass<?>... parameterTypes) {
+    List<? extends IntrospectParameter> parameters = method.parameters();
+    if (parameters.size() != parameterTypes.length) {
+      return false;
+    }
+    for (int index = 0; index < parameterTypes.length; index++) {
+      if (!parameters.get(index).type().name().equals(parameterTypes[index].name())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -162,7 +193,7 @@ public final class SubclassGenerator {
 
     IntrospectClass<?> subclass = environment.createClass(writer.toByteArray());
     IntrospectMethod constructor =
-        subclass.declaredMethod("<init>", environment.findClass(MockState.class), type);
+        declaredConstructor(subclass, environment.findClass(MockState.class), type);
     return new GeneratedSubclass(subclass, constructor);
   }
 
