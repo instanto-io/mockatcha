@@ -22,7 +22,7 @@ concurrency:
 jobs:
   prepare:
     if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, instanto-container]
     env:
       RELEASE_VERSION: ${{ inputs.release_version }}
       NEXT_VERSION: ${{ inputs.next_version }}
