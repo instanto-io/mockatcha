@@ -40,7 +40,6 @@ public final class MockRuntime {
     private final Map<Object, MockState> states = new IdentityHashMap<>();
     private final List<RegisteredMatcher> matchers = new ArrayList<>();
     private final List<Object> uncheckedMocks = new ArrayList<>();
-    private int sequenceGenerator;
     private LastInvocation lastInvocation;
     private VerificationRequest verification;
     private StubbingRequest stubbing;
@@ -50,6 +49,8 @@ public final class MockRuntime {
   }
 
   private static final ThreadLocal<Scope> SCOPE = ThreadLocal.withInitial(Scope::new);
+  private static final java.util.concurrent.atomic.AtomicInteger SEQUENCE_GENERATOR =
+      new java.util.concurrent.atomic.AtomicInteger();
 
   private static Scope scope() {
     return SCOPE.get();
@@ -57,9 +58,9 @@ public final class MockRuntime {
 
   private MockRuntime() {}
 
-  /** Returns the next call sequence number within the current thread's scope. */
+  /** Returns the next call sequence number across every mock. */
   public static int nextSequence() {
-    return scope().sequenceGenerator++;
+    return SEQUENCE_GENERATOR.getAndIncrement();
   }
 
   public static MockState createState(String description) {
@@ -200,9 +201,6 @@ public final class MockRuntime {
           state.release();
         }
       }
-      if (scope.states.isEmpty()) {
-        scope.sequenceGenerator = 0;
-      }
     }
 
     if (failure != null) {
@@ -224,7 +222,6 @@ public final class MockRuntime {
         state.release();
       }
       scope.states.clear();
-      scope.sequenceGenerator = 0;
     } else {
       for (Object mock : scope.uncheckedMocks) {
         MockState state = scope.states.remove(mock);
