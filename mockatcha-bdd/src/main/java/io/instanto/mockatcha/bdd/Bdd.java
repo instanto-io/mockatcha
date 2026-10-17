@@ -8,9 +8,8 @@ package io.instanto.mockatcha.bdd;
 import io.instanto.mockatcha.spi.MockAccess;
 import java.util.Objects;
 
-/** Method-name stubbing, call inspection, and a browser clock for Mockatcha tests. */
+/** Method-name stubbing and call inspection for Mockatcha tests. */
 public final class Bdd {
-
 
   private Bdd() {}
 
@@ -34,7 +33,7 @@ public final class Bdd {
   /** Reads every call recorded on a mock or spy. */
   public static CallLog calls(Object mock) {
     requireMock(mock, "calls");
-    return new CallLog(mock, null, MockAccess.invocations(mock), String.valueOf(mock));
+    return new CallLog(mock, null, MockAccess.invocations(mock), MockAccess.description(mock));
   }
 
   /** Reads the calls recorded for one method name. */

@@ -9,13 +9,11 @@ import io.instanto.mockatcha.internal.MockRuntime;
 import io.instanto.mockatcha.internal.MockState;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import org.teavm.asm.ClassWriter;
 import org.teavm.asm.Label;
 import org.teavm.asm.MethodVisitor;
@@ -37,6 +35,7 @@ public final class SubclassGenerator {
   private static final String OBJECT = "java/lang/Object";
   private static final String STATE_FIELD = "mockatchaState";
   private static final String DELEGATE_FIELD = "mockatchaDelegate";
+  private static final String[] EMPTY_EXCEPTIONS = new String[0];
 
   /** Answered directly by the generated subclass, so never treated as overridable methods. */
   private static final Set<String> OBJECT_METHODS =
@@ -52,9 +51,6 @@ public final class SubclassGenerator {
           "wait()V",
           "wait(J)V",
           "wait(JI)V");
-
-  private static final Map<MetaprogrammingEnvironment, Map<String, GeneratedSubclass>> GENERATED =
-      new WeakHashMap<>();
 
   private SubclassGenerator() {}
 
@@ -152,9 +148,13 @@ public final class SubclassGenerator {
    */
   public static GeneratedSubclass subclassOf(
       MetaprogrammingEnvironment environment, IntrospectClass<?> type) {
-    Map<String, GeneratedSubclass> generated =
-        GENERATED.computeIfAbsent(environment, key -> new HashMap<>());
-    return generated.computeIfAbsent(type.name(), name -> generate(environment, type));
+    IntrospectClass<?> existing = environment.findClass(type.name() + "$Mockatcha");
+    if (existing != null) {
+      IntrospectMethod constructor =
+          declaredConstructor(existing, environment.findClass(MockState.class), type);
+      return new GeneratedSubclass(existing, constructor);
+    }
+    return generate(environment, type);
   }
 
   private static GeneratedSubclass generate(
@@ -174,12 +174,16 @@ public final class SubclassGenerator {
         null);
 
     writer
-        .visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, STATE_FIELD, "L" + STATE + ";", null,
-            null)
+        .visitField(
+            Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, STATE_FIELD, "L" + STATE + ";", null, null)
         .visitEnd();
     writer
-        .visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, DELEGATE_FIELD, "L" + target + ";",
-            null, null)
+        .visitField(
+            Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL,
+            DELEGATE_FIELD,
+            "L" + target + ";",
+            null,
+            null)
         .visitEnd();
 
     writeConstructor(writer, generated, target);
@@ -253,7 +257,7 @@ public final class SubclassGenerator {
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
     visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
     visitor.visitJumpInsn(Opcodes.IFNONNULL, stateReady);
-    if (Modifier.isAbstract(method.modifiers())) {
+    if (Modifier.isAbstract(method.modifiers()) || method.declaringClass().isInterface()) {
       emitEmptyAnswer(visitor, method.returnType());
     } else {
       visitor.visitVarInsn(Opcodes.ALOAD, 0);
@@ -265,21 +269,26 @@ public final class SubclassGenerator {
     }
     visitor.visitLabel(stateReady);
 
-    visitor.visitLdcInsn(parameters.size());
-    visitor.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
-    for (int index = 0; index < parameters.size(); index++) {
-      IntrospectClass<?> parameterType = parameters.get(index).type();
-      visitor.visitInsn(Opcodes.DUP);
-      visitor.visitLdcInsn(index);
-      visitor.visitVarInsn(loadOpcode(parameterType), slots[index]);
-      box(visitor, parameterType);
-      visitor.visitInsn(Opcodes.AASTORE);
+    if (parameters.isEmpty()) {
+      visitor.visitFieldInsn(Opcodes.GETSTATIC, RUNTIME, "NO_ARGUMENTS", "[Ljava/lang/Object;");
+    } else {
+      visitor.visitLdcInsn(parameters.size());
+      visitor.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
+      for (int index = 0; index < parameters.size(); index++) {
+        IntrospectClass<?> parameterType = parameters.get(index).type();
+        visitor.visitInsn(Opcodes.DUP);
+        visitor.visitLdcInsn(index);
+        visitor.visitVarInsn(loadOpcode(parameterType), slots[index]);
+        box(visitor, parameterType);
+        visitor.visitInsn(Opcodes.AASTORE);
+      }
     }
     visitor.visitVarInsn(Opcodes.ASTORE, argumentsSlot);
 
+    String identity = MethodIdentity.of(method);
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
     visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
-    visitor.visitLdcInsn(MethodIdentity.of(method));
+    visitor.visitLdcInsn(identity);
     visitor.visitVarInsn(Opcodes.ALOAD, argumentsSlot);
     visitor.visitMethodInsn(
         Opcodes.INVOKESTATIC,
@@ -292,7 +301,7 @@ public final class SubclassGenerator {
     Label answerFromRuntime = new Label();
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
     visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
-    visitor.visitLdcInsn(MethodIdentity.of(method));
+    visitor.visitLdcInsn(identity);
     visitor.visitVarInsn(Opcodes.ALOAD, argumentsSlot);
     visitor.visitVarInsn(Opcodes.ALOAD, resultSlot);
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
@@ -648,7 +657,7 @@ public final class SubclassGenerator {
   private static String[] exceptionsOf(IntrospectMethod method) {
     List<? extends IntrospectClass<? extends Throwable>> thrown = method.exceptionTypes();
     if (thrown.isEmpty()) {
-      return null;
+      return EMPTY_EXCEPTIONS;
     }
     return thrown.stream().map(type -> type.name().replace('.', '/')).toArray(String[]::new);
   }
@@ -658,12 +667,7 @@ public final class SubclassGenerator {
     if (lastSeparator < 0 || lastSeparator == name.length() - 1) {
       return false;
     }
-    for (int index = lastSeparator + 1; index < name.length(); index++) {
-      if (!Character.isDigit(name.charAt(index))) {
-        return false;
-      }
-    }
-    return true;
+    return Character.isDigit(name.charAt(lastSeparator + 1));
   }
 
   private static String internalName(Class<?> type) {

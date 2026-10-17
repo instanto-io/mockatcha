@@ -19,8 +19,7 @@ public final class RegisteredMatcher {
     this(matcher, description, argument -> {});
   }
 
-  RegisteredMatcher(
-      ArgumentMatcher<Object> matcher, String description, Consumer<Object> onMatch) {
+  RegisteredMatcher(ArgumentMatcher<Object> matcher, String description, Consumer<Object> onMatch) {
     this.matcher = matcher;
     this.description = description;
     this.onMatch = onMatch;

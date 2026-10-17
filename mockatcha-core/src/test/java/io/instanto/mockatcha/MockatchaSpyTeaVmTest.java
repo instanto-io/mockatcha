@@ -20,7 +20,6 @@ import static io.instanto.mockatcha.Mockatcha.verify;
 import static io.instanto.mockatcha.Mockatcha.when;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -171,7 +170,8 @@ public class MockatchaSpyTeaVmTest extends MockatchaTestLifecycle {
 
     assertNotSame(real, pricing);
     assertTrue(pricing instanceof PricingService);
-    assertEquals("Mockatcha spy of io.instanto.mockatcha.MockatchaSpyTeaVmTest$PricingService",
+    assertEquals(
+        "Mockatcha spy of io.instanto.mockatcha.MockatchaSpyTeaVmTest$PricingService",
         pricing.toString());
   }
 

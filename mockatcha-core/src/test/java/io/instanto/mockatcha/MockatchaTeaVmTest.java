@@ -45,8 +45,7 @@ public class MockatchaTeaVmTest extends MockatchaTestLifecycle {
   public void supportsMatchersAnswersAndPrimitiveMethods() {
     GreetingService greetings = mock(GreetingService.class);
 
-    when(greetings.hello(anyString()))
-        .thenAnswer(invocation -> "Hello " + invocation.argument(0));
+    when(greetings.hello(anyString())).thenAnswer(invocation -> "Hello " + invocation.argument(0));
     when(greetings.add(anyInt(), eq(2))).thenReturn(42);
 
     assertEquals("Hello TeaVM", greetings.hello("TeaVM"));

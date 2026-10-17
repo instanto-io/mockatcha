@@ -74,7 +74,7 @@ public final class MockState {
   List<Invocation> matching(InvocationPattern pattern) {
     List<Invocation> matched = new ArrayList<>();
     for (Invocation invocation : invocations) {
-      if (pattern.matches(invocation.method(), invocation.arguments().toArray())) {
+      if (pattern.matches(invocation)) {
         matched.add(invocation);
       }
     }

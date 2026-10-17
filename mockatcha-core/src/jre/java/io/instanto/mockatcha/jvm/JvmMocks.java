@@ -95,8 +95,13 @@ public final class JvmMocks {
   }
 
   private static final class Handler implements InvocationHandler {
-    private static final Object[] NO_ARGUMENTS = new Object[0];
-    private static final Map<Method, String> IDENTITIES = new ConcurrentHashMap<>();
+    private static final ClassValue<Map<Method, String>> IDENTITIES =
+        new ClassValue<>() {
+          @Override
+          protected Map<Method, String> computeValue(Class<?> type) {
+            return new ConcurrentHashMap<>();
+          }
+        };
 
     private final MockState state;
     private final Object delegate;
@@ -120,8 +125,9 @@ public final class JvmMocks {
             return MockRuntime.describe(state);
         }
       }
-      Object[] arguments = args == null ? NO_ARGUMENTS : args;
-      String methodId = IDENTITIES.computeIfAbsent(method, JvmMocks::identity);
+      Object[] arguments = args == null ? MockRuntime.NO_ARGUMENTS : args;
+      String methodId =
+          IDENTITIES.get(method.getDeclaringClass()).computeIfAbsent(method, JvmMocks::identity);
       Object result;
       if (delegate == null) {
         result = MockRuntime.invokeObject(state, methodId, arguments);
@@ -134,7 +140,7 @@ public final class JvmMocks {
       return toReturnType(method.getReturnType(), result);
     }
 
-    private Object callReal(Method method, Object[] arguments) throws Throwable {
+    private Object callReal(Method method, Object[] arguments) {
       // A test's own interface is often not public; its methods then need opening to be called.
       if (!method.canAccess(delegate)) {
         method.trySetAccessible();
@@ -142,7 +148,9 @@ public final class JvmMocks {
       try {
         return method.invoke(delegate, arguments);
       } catch (InvocationTargetException failure) {
-        throw failure.getCause();
+        return MockRuntime.sneakyThrow(failure.getCause());
+      } catch (IllegalAccessException failure) {
+        throw new IllegalStateException(failure);
       }
     }
 

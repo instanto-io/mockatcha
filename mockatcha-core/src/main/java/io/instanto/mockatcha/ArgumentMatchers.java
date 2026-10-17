@@ -69,7 +69,8 @@ public final class ArgumentMatchers {
   }
 
   public static String anyString() {
-    return argThat(argument -> argument instanceof String, "anyString()");
+    argThat(argument -> argument instanceof String, "anyString()");
+    return null;
   }
 
   /** Matches either null or a value assignable to this type. */
@@ -101,20 +102,24 @@ public final class ArgumentMatchers {
   /** Matches a non-null string beginning with this prefix. */
   public static String startsWith(String prefix) {
     Objects.requireNonNull(prefix, "prefix");
-    return argThat(
+    argThat(
         argument -> argument instanceof String && ((String) argument).startsWith(prefix),
         "startsWith(\"" + prefix + "\")");
+    return null;
   }
 
   /** Matches a non-null string ending with this suffix. */
   public static String endsWith(String suffix) {
     Objects.requireNonNull(suffix, "suffix");
-    return argThat(
+    argThat(
         argument -> argument instanceof String && ((String) argument).endsWith(suffix),
         "endsWith(\"" + suffix + "\")");
+    return null;
   }
 
-  /** Matches an argument with a condition of your own, which is reported as {@code argThat(...)}. */
+  /**
+   * Matches an argument with a condition of your own, which is reported as {@code argThat(...)}.
+   */
   public static <T> T argThat(ArgumentMatcher<T> matcher) {
     return argThat(matcher, "argThat(...)");
   }

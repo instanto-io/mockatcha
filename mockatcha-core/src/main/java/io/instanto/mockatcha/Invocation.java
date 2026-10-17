@@ -5,6 +5,7 @@
  */
 package io.instanto.mockatcha;
 
+import io.instanto.mockatcha.internal.MockRuntime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -13,17 +14,17 @@ import java.util.Objects;
 /** Immutable record of one method call made on a mock. */
 public final class Invocation {
 
-  private static int sequenceGenerator;
-
   private final Object mock;
   private final String method;
   private final Object[] arguments;
-  private final int sequence = sequenceGenerator++;
+  private final int sequence;
 
   public Invocation(Object mock, String method, Object[] arguments) {
     this.mock = Objects.requireNonNull(mock, "mock");
     this.method = Objects.requireNonNull(method, "method");
-    this.arguments = Objects.requireNonNull(arguments, "arguments").clone();
+    Objects.requireNonNull(arguments, "arguments");
+    this.arguments = arguments.length == 0 ? MockRuntime.NO_ARGUMENTS : arguments.clone();
+    this.sequence = MockRuntime.nextSequence();
   }
 
   /** The mock or spy that received this call. */
@@ -49,7 +50,9 @@ public final class Invocation {
 
   /** The call's arguments in declaration order. */
   public List<Object> arguments() {
-    return Collections.unmodifiableList(Arrays.asList(arguments.clone()));
+    return arguments.length == 0
+        ? Collections.emptyList()
+        : Collections.unmodifiableList(Arrays.asList(arguments));
   }
 
   /** One argument, counting from zero. */

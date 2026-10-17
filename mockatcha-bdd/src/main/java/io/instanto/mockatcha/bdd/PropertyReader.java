@@ -8,8 +8,8 @@ package io.instanto.mockatcha.bdd;
 /**
  * Reads a named property of one type, without reflection at runtime.
  *
- * <p>Generated while TeaVM compiles the test and obtained from
- * {@link ObjectMatchers#propertiesOf(Class)}.
+ * <p>Generated while TeaVM compiles the test and obtained from {@link
+ * ObjectMatchers#propertiesOf(Class)}.
  */
 public interface PropertyReader<T> {
 

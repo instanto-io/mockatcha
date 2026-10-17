@@ -24,17 +24,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
+import io.instanto.mockatcha.Mockatcha;
 import java.util.List;
 import java.util.Map;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Matchers that describe the shape of an argument rather than its exact value. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
 public class BddMatchersTeaVmTest {
+
+  @After
+  public void releaseMockatchaState() {
+    Mockatcha.releaseMocks();
+  }
 
   @Test
   public void matchesASubstring() {
@@ -44,6 +49,19 @@ public class BddMatchersTeaVmTest {
 
     assertEquals("kept", audit.record("submitted timesheet A-17"));
     assertNull(audit.record("submitted expenses"));
+  }
+
+  @Test
+  public void stringMatchersRejectNonStringValuesWithoutThrowingClassCastException() {
+    Audit audit = mock(Audit.class);
+
+    when(audit.tagAny(stringContaining("timesheet"))).thenReturn("substring");
+    when(audit.tagAny(stringMatching("^audit:\\d+$"))).thenReturn("regex");
+
+    assertNull(audit.tagAny(42));
+    assertNull(audit.tagAny(null));
+    assertEquals("substring", audit.tagAny("my timesheet"));
+    assertEquals("regex", audit.tagAny("audit:17"));
   }
 
   @Test

@@ -21,7 +21,7 @@ public final class CallLog {
   CallLog(Object mock, String methodName, List<Invocation> invocations, String description) {
     this.mock = mock;
     this.methodName = methodName;
-    this.invocations = invocations;
+    this.invocations = List.copyOf(invocations);
     this.description = description;
   }
 
@@ -68,7 +68,12 @@ public final class CallLog {
   public Invocation at(int index) {
     if (index < 0 || index >= invocations.size()) {
       throw new IndexOutOfBoundsException(
-          "Wanted call " + index + " of " + description + " but only " + invocations.size()
+          "Wanted call "
+              + index
+              + " of "
+              + description
+              + " but only "
+              + invocations.size()
               + " were recorded");
     }
     return invocations.get(index);

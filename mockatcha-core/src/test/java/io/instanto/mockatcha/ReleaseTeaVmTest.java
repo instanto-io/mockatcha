@@ -47,4 +47,16 @@ public class ReleaseTeaVmTest {
     validateStubbing();
     assertFalse(mockingDetails(store).isMock());
   }
+
+  @Test
+  public void releasingAfterValidateStubbingStillDetachesTheMock() {
+    Store store = mock(Store.class);
+    when(store.find("A-17")).thenReturn("timesheet");
+    store.find("A-17");
+
+    validateStubbing();
+    releaseMocks();
+
+    assertFalse(mockingDetails(store).isMock());
+  }
 }

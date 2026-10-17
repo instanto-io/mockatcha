@@ -72,6 +72,13 @@ public class SubclassGeneratorRulesTest {
   }
 
   @Test
+  public void rejectsALocalClass() {
+    assertEquals(
+        "com.example.Pricing$1Local is an anonymous or local class",
+        SubclassGenerator.rejectionReason(describe("com.example.Pricing$1Local", Modifier.PUBLIC)));
+  }
+
+  @Test
   public void acceptsANestedClass() {
     assertNull(
         SubclassGenerator.rejectionReason(describe("com.example.Pricing$Rates", Modifier.PUBLIC)));

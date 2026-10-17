@@ -11,8 +11,8 @@ import io.instanto.mockatcha.VerificationMode;
 /**
  * A verification mode expressed as a comparison against a count.
  *
- * <p>Ordered verification reads the kind and count back, because how many calls it consumes
- * depends on how many were wanted.
+ * <p>Ordered verification reads the kind and count back, because how many calls it consumes depends
+ * on how many were wanted.
  */
 public final class CountingMode implements VerificationMode {
 
@@ -89,15 +89,22 @@ public final class CountingMode implements VerificationMode {
 
     if (kind == Kind.ONLY && context.totalCount() != 1) {
       throw new AssertionError(
-          "Wanted " + context.description() + " to be the only call on this mock, but "
-              + (context.totalCount() - 1) + " other call(s) were recorded."
+          "Wanted "
+              + context.description()
+              + " to be the only call on this mock, but "
+              + (context.totalCount() - 1)
+              + " other call(s) were recorded."
               + Failures.listOf(context.recorded()));
     }
   }
 
   private static AssertionError failure(VerificationContext context, String wanted, int actual) {
     return new AssertionError(
-        wanted + context.description() + " but observed " + actual + "."
+        wanted
+            + context.description()
+            + " but observed "
+            + actual
+            + "."
             + Failures.listOf(context.recorded()));
   }
 }

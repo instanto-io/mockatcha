@@ -21,6 +21,11 @@ public final class PropertyMatching {
 
   private PropertyMatching() {}
 
+  /** Refuses a type that has no readable properties when a reader or matcher is requested. */
+  public static void refuseType(String message) {
+    throw new IllegalArgumentException(message);
+  }
+
   /** Registers a matcher for one property. Called from generated code. */
   public static <T> Object matchOne(PropertyReader<T> reader, String property, Object expected) {
     Map<String, Object> single = new LinkedHashMap<>();

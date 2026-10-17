@@ -23,8 +23,7 @@ import org.teavm.junit.TeaVMTestRunner;
 @SkipJVM
 public class TimesheetRuleTest {
 
-  @Rule
-  public MockatchaRule mockatcha = new MockatchaRule();
+  @Rule public MockatchaRule mockatcha = new MockatchaRule();
 
   @Test
   public void theRuleIsReallyRunning() {

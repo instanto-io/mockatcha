@@ -28,9 +28,9 @@ Class mocks have these constraints:
 - `static`, `private`, and `final` methods retain their real behaviour; and
 - `equals`, `hashCode`, and `toString` use identity and a fixed description.
 
-An invalid class mock identifies the rule it broke. Under TeaVM it fails while
-the program compiles; on a JVM it fails when the test asks for the mock. Use an interface when the design already provides one. Class mocks cover
-boundaries whose design you cannot change.
+An invalid class mock identifies the rule it broke and fails when the test asks
+for the mock on both TeaVM and a JVM. Use an interface when the design already
+provides one. Class mocks cover boundaries whose design you cannot change.
 
 ## Spy on an object
 

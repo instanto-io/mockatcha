@@ -25,6 +25,9 @@ public final class MockRuntime {
   /** Returned by dispatch when nothing is stubbed, which a stubbed null must not look like. */
   public static final Object REAL_CALL = new Object();
 
+  /** Shared empty argument array for zero-argument mock invocations. */
+  public static final Object[] NO_ARGUMENTS = new Object[0];
+
   /**
    * The mocks and the part-finished stubbing or verification belonging to one thread.
    *
@@ -37,6 +40,7 @@ public final class MockRuntime {
     private final Map<Object, MockState> states = new IdentityHashMap<>();
     private final List<RegisteredMatcher> matchers = new ArrayList<>();
     private final List<Object> uncheckedMocks = new ArrayList<>();
+    private int sequenceGenerator;
     private LastInvocation lastInvocation;
     private VerificationRequest verification;
     private StubbingRequest stubbing;
@@ -52,6 +56,11 @@ public final class MockRuntime {
   }
 
   private MockRuntime() {}
+
+  /** Returns the next call sequence number within the current thread's scope. */
+  public static int nextSequence() {
+    return scope().sequenceGenerator++;
+  }
 
   public static MockState createState(String description) {
     requireNoPendingMatchers("Creating a mock");
@@ -72,7 +81,7 @@ public final class MockRuntime {
     return state.description();
   }
 
-  static String descriptionOf(Object mock) {
+  public static String descriptionOf(Object mock) {
     return requireState(mock).description();
   }
 
@@ -166,12 +175,13 @@ public final class MockRuntime {
 
   /** Validates and releases every mock owned by a lifecycle, even when validation fails. */
   public static void closeSession(Object token) {
-    SessionContext closing = scope().session;
+    Scope scope = scope();
+    SessionContext closing = scope.session;
     if (closing == null || closing.token != token) {
       throw new IllegalStateException("This Mockatcha scope().session is not active");
     }
-    scope().session = null;
-    scope().strictStubs = closing.previousStrictStubs;
+    scope.session = null;
+    scope.strictStubs = closing.previousStrictStubs;
 
     Throwable failure = null;
     try {
@@ -185,10 +195,13 @@ public final class MockRuntime {
       failure = combine(failure, thrown);
     } finally {
       for (Object mock : closing.mocks) {
-        MockState state = scope().states.remove(mock);
+        MockState state = scope.states.remove(mock);
         if (state != null) {
           state.release();
         }
+      }
+      if (scope.states.isEmpty()) {
+        scope.sequenceGenerator = 0;
       }
     }
 
@@ -206,10 +219,18 @@ public final class MockRuntime {
    */
   public static void releaseUnchecked() {
     Scope scope = scope();
-    for (Object mock : scope.uncheckedMocks) {
-      MockState state = scope.states.remove(mock);
-      if (state != null) {
+    if (scope.session == null) {
+      for (MockState state : scope.states.values()) {
         state.release();
+      }
+      scope.states.clear();
+      scope.sequenceGenerator = 0;
+    } else {
+      for (Object mock : scope.uncheckedMocks) {
+        MockState state = scope.states.remove(mock);
+        if (state != null) {
+          state.release();
+        }
       }
     }
     scope.uncheckedMocks.clear();
@@ -450,7 +471,7 @@ public final class MockRuntime {
 
   static void capture(InvocationPattern pattern, List<Invocation> invocations) {
     for (Invocation invocation : invocations) {
-      pattern.capture(invocation.arguments().toArray());
+      pattern.capture(invocation);
     }
   }
 

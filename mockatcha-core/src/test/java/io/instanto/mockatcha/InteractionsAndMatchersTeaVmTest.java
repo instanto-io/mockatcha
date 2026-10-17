@@ -22,8 +22,8 @@ import static io.instanto.mockatcha.ArgumentMatchers.eq;
 import static io.instanto.mockatcha.ArgumentMatchers.nullable;
 import static io.instanto.mockatcha.ArgumentMatchers.same;
 import static io.instanto.mockatcha.ArgumentMatchers.startsWith;
-import static io.instanto.mockatcha.Mockatcha.inOrder;
 import static io.instanto.mockatcha.Mockatcha.doReturn;
+import static io.instanto.mockatcha.Mockatcha.inOrder;
 import static io.instanto.mockatcha.Mockatcha.lenient;
 import static io.instanto.mockatcha.Mockatcha.mock;
 import static io.instanto.mockatcha.Mockatcha.times;
@@ -279,12 +279,27 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
   }
 
   @Test
+  public void stringMatchersRejectNonStringValuesWithoutThrowingClassCastException() {
+    Repository repository = mock(Repository.class);
+
+    when(repository.classify(startsWith("account:"))).thenReturn("prefix");
+    when(repository.classify(endsWith(".csv"))).thenReturn("suffix");
+    when(repository.classify(find("^A-\\d+$"))).thenReturn("regex");
+    when(repository.classify(anyString())).thenReturn("any-string");
+
+    assertNull(repository.classify(42));
+    assertNull(repository.classify(null));
+    assertEquals("any-string", repository.classify("plain"));
+  }
+
+  @Test
   public void reportsAndClearsAnUnfinishedVerification() {
     Repository repository = mock(Repository.class);
 
     verify(repository);
 
-    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    IllegalStateException failure =
+        assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
     assertTrue(failure.getMessage(), failure.getMessage().contains("verify(mock)"));
     validateUsage();
   }
@@ -295,7 +310,8 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
 
     doReturn("unused").when(repository);
 
-    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    IllegalStateException failure =
+        assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
     assertTrue(failure.getMessage(), failure.getMessage().contains("when(mock)"));
     validateUsage();
   }
@@ -304,7 +320,8 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
   public void reportsAndClearsUnfinishedLeniency() {
     lenient();
 
-    IllegalStateException failure = assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
+    IllegalStateException failure =
+        assertThrows(IllegalStateException.class, Mockatcha::validateUsage);
     assertTrue(failure.getMessage(), failure.getMessage().contains("lenient()"));
     validateUsage();
   }

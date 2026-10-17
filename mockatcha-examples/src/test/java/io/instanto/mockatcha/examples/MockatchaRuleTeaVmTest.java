@@ -27,8 +27,7 @@ import org.teavm.junit.TeaVMTestRunner;
 @SkipJVM
 public class MockatchaRuleTeaVmTest {
 
-  @Rule
-  public MockatchaRule mockatcha = new MockatchaRule();
+  @Rule public MockatchaRule mockatcha = new MockatchaRule();
 
   @Test
   public void theRuleTurnedOnStrictStubbing() {

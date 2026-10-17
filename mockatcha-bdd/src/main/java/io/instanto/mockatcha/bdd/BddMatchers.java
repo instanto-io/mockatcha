@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
  * Argument matchers for strings, collections, maps, and runtime types.
  *
  * <p>These follow the same rule as {@code ArgumentMatchers}: if one argument of a call uses a
- * matcher, every argument must use one. To match an object by its properties, see
- * {@link ObjectMatchers}.
+ * matcher, every argument must use one. To match an object by its properties, see {@link
+ * ObjectMatchers}.
  */
 public final class BddMatchers {
 
@@ -30,25 +30,29 @@ public final class BddMatchers {
   /** Matches a string that contains a substring. */
   public static String stringContaining(String substring) {
     Objects.requireNonNull(substring, "substring");
-    return argThat(
+    argThat(
         argument -> argument instanceof String && ((String) argument).contains(substring),
         "stringContaining(\"" + substring + "\")");
+    return null;
   }
 
   /** Matches a string with a regular expression, anywhere within it. */
   public static String stringMatching(String regularExpression) {
     Pattern pattern = Pattern.compile(Objects.requireNonNull(regularExpression, "regex"));
-    return argThat(
+    argThat(
         argument -> argument instanceof String && pattern.matcher((String) argument).find(),
         "stringMatching(\"" + regularExpression + "\")");
+    return null;
   }
 
-  /** Matches an array or collection containing all of these items, in any order. Extra items are allowed. */
+  /**
+   * Matches an array or collection containing all of these items, in any order. Extra items are
+   * allowed.
+   */
   public static <T> T containing(Object... items) {
     Object[] wanted = items.clone();
     return argThat(
-        argument -> containsAll(argument, wanted),
-        "containing(" + Arrays.toString(wanted) + ")");
+        argument -> containsAll(argument, wanted), "containing(" + Arrays.toString(wanted) + ")");
   }
 
   /** Matches an array or collection holding exactly these items, in any order. */

@@ -5,7 +5,6 @@
  */
 package io.instanto.mockatcha;
 
-
 import io.instanto.mockatcha.internal.CountingMode;
 import io.instanto.mockatcha.internal.InOrderImpl;
 import io.instanto.mockatcha.internal.LenientStubberImpl;
@@ -73,9 +72,8 @@ public final class Mockatcha {
   /**
    * Opens a framework-neutral lifecycle that validates and releases its mocks.
    *
-   * <p>Intended for custom or non-JUnit harnesses. JUnit tests should normally use
-   * {@link MockatchaRule}. Makes unused-stub checks on close without enabling fail-fast strict
-   * stubbing.
+   * <p>Intended for custom or non-JUnit harnesses. JUnit tests should normally use {@link
+   * MockatchaRule}. Makes unused-stub checks on close without enabling fail-fast strict stubbing.
    */
   public static MockatchaSession session() {
     return session(false);
@@ -206,8 +204,8 @@ public final class Mockatcha {
   /**
    * Fails a call that found no arranged answer while the same method has one that did not match.
    *
-   * <p>Off by default. {@link MockatchaRule}, {@link StrictTest}, and a strict
-   * {@link MockatchaSession} turn it on for their test lifecycle.
+   * <p>Off by default. {@link MockatchaRule}, {@link StrictTest}, and a strict {@link
+   * MockatchaSession} turn it on for their test lifecycle.
    */
   public static void strictStubs(boolean strict) {
     MockRuntime.strictStubs(strict);
@@ -229,8 +227,8 @@ public final class Mockatcha {
   /**
    * Fails when an argument matcher was created but never used by a call on a mock.
    *
-   * <p>Useful in an {@code @After} method, where it reports the mistake against the test that
-   * made it rather than the next one to run.
+   * <p>Useful in an {@code @After} method, where it reports the mistake against the test that made
+   * it rather than the next one to run.
    */
   public static void validateUsage() {
     MockRuntime.validateUsage();

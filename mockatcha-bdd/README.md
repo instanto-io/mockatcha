@@ -1,8 +1,8 @@
 # BDD helpers for Mockatcha
 
-The `bdd` module provides additional browser-testing APIs for
-[Mockatcha](../README.md). It works with mocks and spies created by Mockatcha,
-and can be mixed with the core API in the same test.
+The `bdd` module provides Jasmine-inspired BDD helpers for
+[Mockatcha](../README.md) on both the JVM and TeaVM. It works with mocks and
+spies created by Mockatcha, and can be mixed with the core API in the same test.
 
 ```java
 PricingService pricing = mock(PricingService.class);

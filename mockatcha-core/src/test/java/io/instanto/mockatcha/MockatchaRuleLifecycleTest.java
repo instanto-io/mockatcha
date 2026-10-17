@@ -30,8 +30,7 @@ public class MockatchaRuleLifecycleTest {
 
     Throwable observed =
         assertThrows(
-            Throwable.class,
-            () -> new MockatchaRule().apply(body, Description.EMPTY).evaluate());
+            Throwable.class, () -> new MockatchaRule().apply(body, Description.EMPTY).evaluate());
 
     assertSame(bodyFailure, observed);
     assertEquals(1, observed.getSuppressed().length);

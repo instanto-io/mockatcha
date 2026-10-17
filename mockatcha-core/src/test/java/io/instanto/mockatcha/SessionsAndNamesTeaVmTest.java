@@ -47,8 +47,7 @@ public class SessionsAndNamesTeaVmTest {
   public void aNamedMockAppearsInItsVerificationFailure() {
     Store store = mock(Store.class, "timesheet store");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(store).find("A-17"));
+    AssertionError failure = assertThrows(AssertionError.class, () -> verify(store).find("A-17"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("timesheet store"));
   }

@@ -17,12 +17,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import io.instanto.mockatcha.Mockatcha;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /**
@@ -32,8 +33,12 @@ import org.teavm.junit.TeaVMTestRunner;
  * generated equivalent reads real accessors and fields in the browser, with no reflection.
  */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
 public class ObjectMatchersTeaVmTest {
+
+  @After
+  public void releaseMockatchaState() {
+    Mockatcha.releaseMocks();
+  }
 
   @Test
   public void matchesOnOneRecordStyleAccessor() {
@@ -85,7 +90,8 @@ public class ObjectMatchersTeaVmTest {
 
     verify(repository)
         .saveOvertime(
-            objectContaining(OvertimeTimesheet.class, Map.of("employeeId", "A-17", "overtime", 10)));
+            objectContaining(
+                OvertimeTimesheet.class, Map.of("employeeId", "A-17", "overtime", 10)));
   }
 
   @Test

@@ -49,7 +49,9 @@ public final class InOrderImpl implements InOrder {
     List<Invocation> remaining = unverified();
     if (!remaining.isEmpty()) {
       throw new AssertionError(
-          "Wanted no further calls in this order, but observed " + remaining.get(0) + "."
+          "Wanted no further calls in this order, but observed "
+              + remaining.get(0)
+              + "."
               + Failures.listOf(remaining));
     }
   }
@@ -57,9 +59,9 @@ public final class InOrderImpl implements InOrder {
   /**
    * Counts the matching calls that follow everything already verified, then consumes them.
    *
-   * <p>An exact count first looks at the run of matching calls that starts next, which lets
-   * {@code times(1)} succeed when a later call matches too. If that run is not the size wanted,
-   * every matching call after the cursor is considered instead.
+   * <p>An exact count first looks at the run of matching calls that starts next, which lets {@code
+   * times(1)} succeed when a later call matches too. If that run is not the size wanted, every
+   * matching call after the cursor is considered instead.
    */
   void check(Object mock, InvocationPattern pattern, VerificationMode mode) {
     List<Invocation> remaining = unverified();
@@ -135,10 +137,8 @@ public final class InOrderImpl implements InOrder {
     return run;
   }
 
-  private static boolean matches(
-      Invocation invocation, Object mock, InvocationPattern pattern) {
-    return invocation.mock() == mock
-        && pattern.matches(invocation.method(), invocation.arguments().toArray());
+  private static boolean matches(Invocation invocation, Object mock, InvocationPattern pattern) {
+    return invocation.mock() == mock && pattern.matches(invocation);
   }
 
   private void requireKnown(Object mock) {

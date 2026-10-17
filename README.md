@@ -113,8 +113,8 @@ the full class rules.
 **TeaVM needs the type written directly in the test.** Use
 `mock(PriceService.class)` or `spy(PriceService.class, realService)`.
 Mockatcha generates the mock while TeaVM compiles the test, so it cannot choose
-the type from a `Class` variable at runtime. If a class cannot be mocked, TeaVM
-reports it during compilation; a JVM reports it when the test runs.
+the type from a `Class` variable at runtime. If a class cannot be mocked, both
+TeaVM and a JVM report the broken rule when the test runs.
 
 **Keep each test's mocks separate.** In a JUnit test, `MockatchaRule` checks
 and clears mock state after the test:

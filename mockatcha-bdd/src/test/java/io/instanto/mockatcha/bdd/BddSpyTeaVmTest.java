@@ -17,16 +17,21 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import io.instanto.mockatcha.Mockatcha;
 import java.util.List;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.teavm.junit.SkipJVM;
 import org.teavm.junit.TeaVMTestRunner;
 
 /** Naming a method instead of calling it, and reading a call record fluently. */
 @RunWith(TeaVMTestRunner.class)
-@SkipJVM
 public class BddSpyTeaVmTest {
+
+  @After
+  public void releaseMockatchaState() {
+    Mockatcha.releaseMocks();
+  }
 
   @Test
   public void arrangesAMethodByNameWithoutCallingIt() {
@@ -78,8 +83,7 @@ public class BddSpyTeaVmTest {
     PricingService pricing = mock(PricingService.class);
 
     assertThrows(
-        IllegalArgumentException.class,
-        () -> spyOn(pricing, "currency").andReturnValues());
+        IllegalArgumentException.class, () -> spyOn(pricing, "currency").andReturnValues());
   }
 
   @Test
@@ -160,8 +164,7 @@ public class BddSpyTeaVmTest {
     pricing.total("A-17");
     pricing.total("A-18");
 
-    assertEquals(
-        List.of(List.of("A-17"), List.of("A-18")), calls(pricing, "total").allArgs());
+    assertEquals(List.of(List.of("A-17"), List.of("A-18")), calls(pricing, "total").allArgs());
   }
 
   @Test
@@ -205,12 +208,10 @@ public class BddSpyTeaVmTest {
   @Test
   public void refusesAnObjectThatIsNotAMock() {
     IllegalArgumentException failure =
-        assertThrows(
-            IllegalArgumentException.class, () -> spyOn(new PricingService(), "currency"));
+        assertThrows(IllegalArgumentException.class, () -> spyOn(new PricingService(), "currency"));
 
     assertTrue(
-        failure.getMessage(),
-        failure.getMessage().contains("Mockatcha.mock or Mockatcha.spy"));
+        failure.getMessage(), failure.getMessage().contains("Mockatcha.mock or Mockatcha.spy"));
   }
 
   public static class PricingService {

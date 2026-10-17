@@ -18,8 +18,8 @@ import org.junit.runners.model.Statement;
  * }</pre>
  *
  * <p>The rule opens a {@link MockatchaSession}, enables strict stubbing, validates the session, and
- * releases its mocks. TeaVM tests need {@code instanto-teavm-extensions} for rule support.
- * {@link StrictTest} is the fallback when that support cannot be installed; do not use both.
+ * releases its mocks. TeaVM tests need {@code instanto-teavm-extensions} for rule support. {@link
+ * StrictTest} is the fallback when that support cannot be installed; do not use both.
  */
 public final class MockatchaRule implements TestRule {
 

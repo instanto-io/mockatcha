@@ -14,12 +14,11 @@ import static io.instanto.mockatcha.Mockatcha.mock;
 import static io.instanto.mockatcha.Mockatcha.never;
 import static io.instanto.mockatcha.Mockatcha.only;
 import static io.instanto.mockatcha.Mockatcha.times;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.teavm.junit.TeaVMTestRunner;
@@ -155,7 +154,8 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
 
     InOrder order = inOrder(repository);
     order.verify(repository, atLeast(2)).save("report");
-    assertThrows(AssertionError.class, () -> order.verify(repository, atLeastOnce()).save("report"));
+    assertThrows(
+        AssertionError.class, () -> order.verify(repository, atLeastOnce()).save("report"));
   }
 
   @Test
@@ -224,8 +224,7 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
     Notifications notifications = mock(Notifications.class);
     InOrder order = inOrder(repository);
 
-    assertThrows(
-        IllegalArgumentException.class, () -> order.verify(notifications).send("saved"));
+    assertThrows(IllegalArgumentException.class, () -> order.verify(notifications).send("saved"));
   }
 
   @Test

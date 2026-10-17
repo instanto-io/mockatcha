@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
  * verify(reader).read(aryEq(new byte[] {1, 2, 3}));
  * }</pre>
  *
- * <p>Comparisons come in {@code int}, {@code long}, {@code double}, and {@link Comparable} forms.
- * A {@code float}, {@code short}, or {@code byte} argument is served by the {@code int} or
- * {@code double} form, which Java widens at the call site.
+ * <p>Comparisons come in {@code int}, {@code long}, {@code double}, and {@link Comparable} forms. A
+ * {@code float}, {@code short}, or {@code byte} argument is served by the {@code int} or {@code
+ * double} form, which Java widens at the call site.
  */
 public final class AdditionalMatchers {
 
@@ -256,11 +256,10 @@ public final class AdditionalMatchers {
   public static String find(String regularExpression) {
     Objects.requireNonNull(regularExpression, "regularExpression");
     Pattern pattern = Pattern.compile(regularExpression);
-    return ArgumentMatchers.argThat(
-        argument ->
-            argument instanceof String
-                && pattern.matcher((String) argument).find(),
+    ArgumentMatchers.argThat(
+        argument -> argument instanceof String && pattern.matcher((String) argument).find(),
         "find(\"" + regularExpression + "\")");
+    return null;
   }
 
   /** Matches an array with these contents, in this order. */

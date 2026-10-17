@@ -68,8 +68,7 @@ public class TimesheetServiceTest {
     TimesheetRepository timesheets = mock(TimesheetRepository.class);
     ApprovalGateway approvals = mock(ApprovalGateway.class);
     when(timesheets.findDraft(anyString()))
-        .thenAnswer(
-            invocation -> new Timesheet((String) invocation.argument(0), 40));
+        .thenAnswer(invocation -> new Timesheet((String) invocation.argument(0), 40));
 
     Submission result = new TimesheetService(timesheets, approvals).submit("B-24");
 

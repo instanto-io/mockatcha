@@ -31,7 +31,8 @@ public class IdentityParityTeaVmTest extends MockatchaTestLifecycle {
     AssertionError failure =
         assertThrows(AssertionError.class, () -> verify(reports).combine("a", 1));
 
-    assertTrue(failure.getMessage(), failure.getMessage().contains("combine(java.lang.String,int)"));
+    assertTrue(
+        failure.getMessage(), failure.getMessage().contains("combine(java.lang.String,int)"));
   }
 
   @Test
@@ -41,6 +42,7 @@ public class IdentityParityTeaVmTest extends MockatchaTestLifecycle {
     AssertionError failure =
         assertThrows(AssertionError.class, () -> verify(reports).summarise(new String[] {"a"}));
 
-    assertTrue(failure.getMessage(), failure.getMessage().contains("summarise([Ljava.lang.String;)"));
+    assertTrue(
+        failure.getMessage(), failure.getMessage().contains("summarise([Ljava.lang.String;)"));
   }
 }

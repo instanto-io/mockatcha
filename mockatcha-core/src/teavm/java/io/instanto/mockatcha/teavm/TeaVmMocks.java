@@ -46,21 +46,20 @@ public final class TeaVmMocks {
   @Meta
   public static native <T> T spy(Class<T> type, T delegate, String name);
 
-  private static <T> void mock(IntrospectClass<T> type) {
+  static <T> void mock(IntrospectClass<T> type) {
     generate(type, null, defaultDescription(type, false));
   }
 
-  private static <T> void mock(IntrospectClass<T> type, Value<String> name) {
+  static <T> void mock(IntrospectClass<T> type, Value<String> name) {
     generate(type, null, namedDescription(type, name, false));
   }
 
-  private static <T> void spy(IntrospectClass<T> type, Value<T> delegate) {
+  static <T> void spy(IntrospectClass<T> type, Value<T> delegate) {
     emit(() -> MockRuntime.requireDelegate(delegate.get()));
     generate(type, delegate, defaultDescription(type, true));
   }
 
-  private static <T> void spy(
-      IntrospectClass<T> type, Value<T> delegate, Value<String> name) {
+  static <T> void spy(IntrospectClass<T> type, Value<T> delegate, Value<String> name) {
     emit(() -> MockRuntime.requireDelegate(delegate.get()));
     generate(type, delegate, namedDescription(type, name, true));
   }
@@ -99,6 +98,19 @@ public final class TeaVmMocks {
     return proxy(
         type,
         (instance, method, arguments) -> {
+          if (isObjectEquals(method)) {
+            Value<Object> other = arguments[0];
+            exit(() -> MockRuntime.sameInstance(instance.get(), other.get()));
+            return;
+          }
+          if (isObjectHashCode(method)) {
+            exit(() -> MockRuntime.identityHashCode(instance.get()));
+            return;
+          }
+          if (isObjectToString(method)) {
+            exit(() -> MockRuntime.describe(state.get()));
+            return;
+          }
           Value<Object[]> recorded = collectArguments(arguments);
           Value<Object> result =
               delegate == null
@@ -108,7 +120,28 @@ public final class TeaVmMocks {
         });
   }
 
-  /** Instantiates the generated subclass, or reports why the class is unsupported and returns null. */
+  private static boolean isObjectEquals(IntrospectMethod method) {
+    return method.name().equals("equals")
+        && method.returnType().name().equals("boolean")
+        && method.parameters().size() == 1
+        && method.parameters().get(0).type().name().equals("java.lang.Object");
+  }
+
+  private static boolean isObjectHashCode(IntrospectMethod method) {
+    return method.name().equals("hashCode")
+        && method.returnType().name().equals("int")
+        && method.parameters().isEmpty();
+  }
+
+  private static boolean isObjectToString(IntrospectMethod method) {
+    return method.name().equals("toString")
+        && method.returnType().name().equals("java.lang.String")
+        && method.parameters().isEmpty();
+  }
+
+  /**
+   * Instantiates the generated subclass, or reports why the class is unsupported and returns null.
+   */
   private static <T> Value<T> subclass(
       IntrospectClass<T> type, Value<MockState> state, Value<T> delegate) {
     String rejection = SubclassGenerator.rejectionReason(type);
@@ -133,6 +166,9 @@ public final class TeaVmMocks {
 
   private static Value<Object[]> collectArguments(Value<Object>[] arguments) {
     int argumentCount = arguments.length;
+    if (argumentCount == 0) {
+      return emit(() -> MockRuntime.NO_ARGUMENTS);
+    }
     Value<Object[]> collected = emit(() -> new Object[argumentCount]);
     for (int index = 0; index < argumentCount; index++) {
       int argumentIndex = index;
@@ -155,8 +191,8 @@ public final class TeaVmMocks {
       Value<T> delegate,
       IntrospectMethod method,
       Value<Object[]> arguments) {
-    String methodId = MethodIdentity.of(method);
     MethodCaller realCall = caller(method);
+    String methodId = MethodIdentity.of(method);
     return emit(
         () -> {
           Object result = MockRuntime.dispatchSpy(state.get(), methodId, arguments.get());

@@ -5,6 +5,7 @@
  */
 package io.instanto.mockatcha.internal;
 
+import io.instanto.mockatcha.Invocation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,6 +46,25 @@ final class InvocationPattern {
     return parenthesis < 0 ? method : method.substring(0, parenthesis);
   }
 
+  boolean matches(Invocation invocation) {
+    if (!matchesMethod(invocation.method())) {
+      return false;
+    }
+    if (this.arguments == null) {
+      return true;
+    }
+    int count = invocation.argumentCount();
+    if (this.arguments.size() != count) {
+      return false;
+    }
+    for (int index = 0; index < count; index++) {
+      if (!this.arguments.get(index).matches(invocation.argument(index))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   boolean matches(String method, Object[] arguments) {
     if (!matchesMethod(method)) {
       return false;
@@ -61,6 +81,17 @@ final class InvocationPattern {
       }
     }
     return true;
+  }
+
+  /** Commits side effects such as argument capture after the whole invocation has matched. */
+  void capture(Invocation invocation) {
+    if (this.arguments == null) {
+      return;
+    }
+    int count = invocation.argumentCount();
+    for (int index = 0; index < count; index++) {
+      this.arguments.get(index).capture(invocation.argument(index));
+    }
   }
 
   /** Commits side effects such as argument capture after the whole invocation has matched. */

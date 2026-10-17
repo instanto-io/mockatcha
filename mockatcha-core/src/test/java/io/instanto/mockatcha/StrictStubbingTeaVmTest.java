@@ -51,8 +51,7 @@ public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
     Store store = mock(Store.class);
     when(store.find("A-17")).thenReturn("timesheet");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> validateStubbing(store));
+    AssertionError failure = assertThrows(AssertionError.class, () -> validateStubbing(store));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("never used"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("find"));
@@ -65,8 +64,7 @@ public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
 
     store.find("A-18");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> validateStubbing(store));
+    AssertionError failure = assertThrows(AssertionError.class, () -> validateStubbing(store));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("called with"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("A-18"));
@@ -79,8 +77,7 @@ public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
 
     store.audit("something else");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> validateStubbing(store));
+    AssertionError failure = assertThrows(AssertionError.class, () -> validateStubbing(store));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("never called"));
   }

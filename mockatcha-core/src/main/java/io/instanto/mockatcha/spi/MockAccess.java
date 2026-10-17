@@ -25,6 +25,11 @@ public final class MockAccess {
     return MockRuntime.isMock(mock);
   }
 
+  /** Returns the diagnostic description of a mock or spy. */
+  public static String description(Object mock) {
+    return MockRuntime.descriptionOf(mock);
+  }
+
   /**
    * Arranges answers for every overload of a method name.
    *

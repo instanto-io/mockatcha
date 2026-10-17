@@ -26,7 +26,7 @@ public final class VerificationContext {
     this.matchingCount = matchingCount;
     this.totalCount = totalCount;
     this.description = Objects.requireNonNull(description, "description");
-    this.recorded = Objects.requireNonNull(recorded, "recorded");
+    this.recorded = List.copyOf(Objects.requireNonNull(recorded, "recorded"));
   }
 
   /** How many recorded calls match the call being verified. */

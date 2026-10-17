@@ -27,7 +27,9 @@ mock while TeaVM compiles the test. This leads to two rules there:
 
 - Pass a class literal, such as `mock(ProfileRepository.class)`, so Mockatcha can
   identify the type during compilation.
-- An invalid request, such as a final class, fails during compilation.
+- An invalid request, such as a final class, records the broken rule during
+  compilation and throws `IllegalArgumentException` when that `mock` or `spy`
+  call runs.
 
 On a JVM the mock is made when the test asks for it. An interface becomes a
 `Proxy`, and a class gets a subclass generated at that moment. This leads to two

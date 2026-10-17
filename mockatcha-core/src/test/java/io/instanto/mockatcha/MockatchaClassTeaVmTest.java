@@ -5,7 +5,6 @@
  */
 package io.instanto.mockatcha;
 
-import static io.instanto.mockatcha.ArgumentMatchers.anyInt;
 import static io.instanto.mockatcha.ArgumentMatchers.anyString;
 import static io.instanto.mockatcha.ArgumentMatchers.eq;
 import static io.instanto.mockatcha.Mockatcha.clearInvocations;
@@ -204,7 +203,8 @@ public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
     assertEquals(first, first);
     assertNotEquals(first, second);
     assertEquals(first.hashCode(), first.hashCode());
-    assertEquals("Mockatcha mock of io.instanto.mockatcha.MockatchaClassTeaVmTest$PricingService",
+    assertEquals(
+        "Mockatcha mock of io.instanto.mockatcha.MockatchaClassTeaVmTest$PricingService",
         first.toString());
     assertEquals(0, mockingDetails(first).getInvocations().size());
   }
@@ -263,6 +263,20 @@ public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
 
     assertEquals(0, service.valueSeenByConstructor());
     assertEquals(0, service.value());
+  }
+
+  @Test
+  public void mocksAbstractClassesImplementingAnInterfaceWithoutRedeclaringMethods() {
+    AbstractAuditedReport report = mock(AbstractAuditedReport.class);
+
+    when(report.title()).thenReturn("Quarterly");
+    when(report.auditTrail()).thenReturn("trail-1");
+    when(report.defaultSummary()).thenReturn("custom-summary");
+
+    assertEquals("Quarterly", report.title());
+    assertEquals("trail-1", report.auditTrail());
+    assertEquals("custom-summary", report.defaultSummary());
+    verify(report).auditTrail();
   }
 
   public static class PricingService {
@@ -359,6 +373,20 @@ public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
     public int rows() {
       return 1;
     }
+  }
+
+  public interface Auditable {
+
+    String auditTrail();
+
+    default String defaultSummary() {
+      return "default";
+    }
+  }
+
+  public abstract static class AbstractAuditedReport implements Auditable {
+
+    public abstract String title();
   }
 
   public static class Box<T> {

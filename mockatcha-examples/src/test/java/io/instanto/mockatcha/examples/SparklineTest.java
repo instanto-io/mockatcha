@@ -82,8 +82,7 @@ public class SparklineTest {
   }
 
   private static CanvasRenderingContext2D newCanvas() {
-    HTMLCanvasElement element =
-        (HTMLCanvasElement) HTMLDocument.current().createElement("canvas");
+    HTMLCanvasElement element = (HTMLCanvasElement) HTMLDocument.current().createElement("canvas");
     element.setWidth(WIDTH);
     element.setHeight(HEIGHT);
     return (CanvasRenderingContext2D) element.getContext("2d");

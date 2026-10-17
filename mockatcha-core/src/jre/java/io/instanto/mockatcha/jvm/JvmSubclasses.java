@@ -11,13 +11,15 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -36,6 +38,7 @@ final class JvmSubclasses {
   private static final String OBJECT = "java/lang/Object";
   private static final String STATE_FIELD = "mockatchaState";
   private static final String DELEGATE_FIELD = "mockatchaDelegate";
+  private static final String[] EMPTY_EXCEPTIONS = new String[0];
 
   /** Answered directly by the generated subclass, so never treated as overridable methods. */
   private static final Set<String> OBJECT_METHODS =
@@ -52,7 +55,13 @@ final class JvmSubclasses {
           "wait(J)V",
           "wait(JI)V");
 
-  private static final Map<Class<?>, Constructor<?>> GENERATED = new ConcurrentHashMap<>();
+  private static final ClassValue<Constructor<?>> GENERATED =
+      new ClassValue<>() {
+        @Override
+        protected Constructor<?> computeValue(Class<?> type) {
+          return generate(type);
+        }
+      };
 
   private JvmSubclasses() {}
 
@@ -96,7 +105,7 @@ final class JvmSubclasses {
 
   /** Instantiates a generated subclass; a mock is an instance whose delegate is null. */
   static <T> T instantiate(Class<T> type, MockState state, T delegate) {
-    Constructor<?> constructor = GENERATED.computeIfAbsent(type, JvmSubclasses::generate);
+    Constructor<?> constructor = GENERATED.get(type);
     try {
       return type.cast(constructor.newInstance(state, delegate));
     } catch (ReflectiveOperationException failure) {
@@ -201,7 +210,7 @@ final class JvmSubclasses {
     visitor.visitVarInsn(Opcodes.ALOAD, 0);
     visitor.visitFieldInsn(Opcodes.GETFIELD, generated, STATE_FIELD, "L" + STATE + ";");
     visitor.visitJumpInsn(Opcodes.IFNONNULL, stateReady);
-    if (Modifier.isAbstract(method.getModifiers())) {
+    if (Modifier.isAbstract(method.getModifiers()) || method.getDeclaringClass().isInterface()) {
       emitEmptyAnswer(visitor, returnType);
     } else {
       visitor.visitVarInsn(Opcodes.ALOAD, 0);
@@ -211,14 +220,19 @@ final class JvmSubclasses {
     }
     visitor.visitLabel(stateReady);
 
-    visitor.visitLdcInsn(parameters.length);
-    visitor.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
-    for (int index = 0; index < parameters.length; index++) {
-      visitor.visitInsn(Opcodes.DUP);
-      visitor.visitLdcInsn(index);
-      visitor.visitVarInsn(Type.getType(parameters[index]).getOpcode(Opcodes.ILOAD), slots[index]);
-      box(visitor, parameters[index]);
-      visitor.visitInsn(Opcodes.AASTORE);
+    if (parameters.length == 0) {
+      visitor.visitFieldInsn(Opcodes.GETSTATIC, RUNTIME, "NO_ARGUMENTS", "[Ljava/lang/Object;");
+    } else {
+      visitor.visitLdcInsn(parameters.length);
+      visitor.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
+      for (int index = 0; index < parameters.length; index++) {
+        visitor.visitInsn(Opcodes.DUP);
+        visitor.visitLdcInsn(index);
+        visitor.visitVarInsn(
+            Type.getType(parameters[index]).getOpcode(Opcodes.ILOAD), slots[index]);
+        box(visitor, parameters[index]);
+        visitor.visitInsn(Opcodes.AASTORE);
+      }
     }
     visitor.visitVarInsn(Opcodes.ASTORE, argumentsSlot);
 
@@ -369,27 +383,61 @@ final class JvmSubclasses {
    */
   static List<Method> overridableMethods(Class<?> type) {
     Map<String, Method> chosen = new LinkedHashMap<>();
+    Set<String> finalSignatures = new HashSet<>();
+    Deque<Class<?>> interfaces = new ArrayDeque<>();
+    Set<Class<?>> seenInterfaces = new HashSet<>();
     for (Class<?> current = type; current != null; current = current.getSuperclass()) {
       for (Method method : current.getDeclaredMethods()) {
         int modifiers = method.getModifiers();
-        if (Modifier.isStatic(modifiers)
-            || Modifier.isPrivate(modifiers)
-            || Modifier.isFinal(modifiers)) {
+        if (Modifier.isStatic(modifiers) || Modifier.isPrivate(modifiers)) {
+          continue;
+        }
+        String descriptor = Type.getMethodDescriptor(method);
+        String signature = method.getName() + descriptor.substring(0, descriptor.indexOf(')') + 1);
+        if (Modifier.isFinal(modifiers)) {
+          finalSignatures.add(signature);
+          continue;
+        }
+        if (finalSignatures.contains(signature)) {
           continue;
         }
         if (!Modifier.isPublic(modifiers) && !Modifier.isProtected(modifiers)) {
           continue;
         }
-        if (OBJECT_METHODS.contains(method.getName() + Type.getMethodDescriptor(method))) {
+        if (OBJECT_METHODS.contains(method.getName() + descriptor)) {
           continue;
         }
-        String signature =
-            method.getName() + Type.getMethodDescriptor(method).replaceAll("\\).*", ")");
         Method previous = chosen.get(signature);
         if (previous == null || previous.isBridge()) {
           chosen.put(signature, method);
         }
       }
+      Collections.addAll(interfaces, current.getInterfaces());
+    }
+    while (!interfaces.isEmpty()) {
+      Class<?> iface = interfaces.removeFirst();
+      if (!seenInterfaces.add(iface)) {
+        continue;
+      }
+      for (Method method : iface.getDeclaredMethods()) {
+        int modifiers = method.getModifiers();
+        if (Modifier.isStatic(modifiers) || Modifier.isPrivate(modifiers)) {
+          continue;
+        }
+        String descriptor = Type.getMethodDescriptor(method);
+        if (OBJECT_METHODS.contains(method.getName() + descriptor)) {
+          continue;
+        }
+        String signature = method.getName() + descriptor.substring(0, descriptor.indexOf(')') + 1);
+        if (finalSignatures.contains(signature)) {
+          continue;
+        }
+        Method previous = chosen.get(signature);
+        if (previous == null || previous.isBridge()) {
+          chosen.put(signature, method);
+        }
+      }
+      Collections.addAll(interfaces, iface.getInterfaces());
     }
     return new ArrayList<>(chosen.values());
   }
@@ -409,7 +457,7 @@ final class JvmSubclasses {
   private static String[] exceptionsOf(Method method) {
     Class<?>[] thrown = method.getExceptionTypes();
     if (thrown.length == 0) {
-      return null;
+      return EMPTY_EXCEPTIONS;
     }
     String[] names = new String[thrown.length];
     for (int index = 0; index < thrown.length; index++) {

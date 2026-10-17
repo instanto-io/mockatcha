@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Answers built from the call being answered, for use with {@code thenAnswer} and
- * {@code doAnswer}.
+ * Answers built from the call being answered, for use with {@code thenAnswer} and {@code doAnswer}.
  *
  * <pre>{@code
  * when(store.save(any())).thenAnswer(returnsFirstArg());
@@ -93,7 +92,11 @@ public final class AdditionalAnswers {
   private static <T> T argumentAt(Invocation invocation, int index) {
     if (index < 0 || index >= invocation.argumentCount()) {
       throw new IllegalArgumentException(
-          "Wanted argument " + index + " of " + invocation + " but it has "
+          "Wanted argument "
+              + index
+              + " of "
+              + invocation
+              + " but it has "
               + invocation.argumentCount());
     }
     @SuppressWarnings("unchecked")

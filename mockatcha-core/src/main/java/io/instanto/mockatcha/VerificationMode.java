@@ -12,7 +12,9 @@ package io.instanto.mockatcha;
  */
 public interface VerificationMode {
 
-  /** Checks the number of calls that matched, and throws an {@link AssertionError} if it is wrong. */
+  /**
+   * Checks the number of calls that matched, and throws an {@link AssertionError} if it is wrong.
+   */
   void verify(int actualCount, String invocationDescription);
 
   /** Checks a verified call with everything the runtime knows about it. */
