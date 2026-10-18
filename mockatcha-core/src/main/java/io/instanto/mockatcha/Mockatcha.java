@@ -15,6 +15,7 @@ import io.instanto.mockatcha.teavm.TeaVmMocks;
 import org.teavm.interop.PlatformMarker;
 
 /** Entry point for mocking on the JVM and in TeaVM, following Mockito's API. */
+@SuppressWarnings("java:S2583") // onTeaVm() is substituted by TeaVM compiler at AOT time
 public final class Mockatcha {
 
   private Mockatcha() {}

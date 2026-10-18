@@ -29,47 +29,47 @@ public final class ArgumentMatchers {
   }
 
   public static boolean anyBoolean() {
-    argThat(argument -> argument instanceof Boolean, "anyBoolean()");
+    argThat(Boolean.class::isInstance, "anyBoolean()");
     return false;
   }
 
   public static byte anyByte() {
-    argThat(argument -> argument instanceof Byte, "anyByte()");
+    argThat(Byte.class::isInstance, "anyByte()");
     return 0;
   }
 
   public static short anyShort() {
-    argThat(argument -> argument instanceof Short, "anyShort()");
+    argThat(Short.class::isInstance, "anyShort()");
     return 0;
   }
 
   public static char anyChar() {
-    argThat(argument -> argument instanceof Character, "anyChar()");
+    argThat(Character.class::isInstance, "anyChar()");
     return '\0';
   }
 
   public static int anyInt() {
-    argThat(argument -> argument instanceof Integer, "anyInt()");
+    argThat(Integer.class::isInstance, "anyInt()");
     return 0;
   }
 
   public static long anyLong() {
-    argThat(argument -> argument instanceof Long, "anyLong()");
+    argThat(Long.class::isInstance, "anyLong()");
     return 0L;
   }
 
   public static float anyFloat() {
-    argThat(argument -> argument instanceof Float, "anyFloat()");
+    argThat(Float.class::isInstance, "anyFloat()");
     return 0F;
   }
 
   public static double anyDouble() {
-    argThat(argument -> argument instanceof Double, "anyDouble()");
+    argThat(Double.class::isInstance, "anyDouble()");
     return 0D;
   }
 
   public static String anyString() {
-    argThat(argument -> argument instanceof String, "anyString()");
+    argThat(String.class::isInstance, "anyString()");
     return null;
   }
 
@@ -103,7 +103,7 @@ public final class ArgumentMatchers {
   public static String startsWith(String prefix) {
     Objects.requireNonNull(prefix, "prefix");
     argThat(
-        argument -> argument instanceof String && ((String) argument).startsWith(prefix),
+        argument -> argument instanceof String s && s.startsWith(prefix),
         "startsWith(\"" + prefix + "\")");
     return null;
   }
@@ -112,7 +112,7 @@ public final class ArgumentMatchers {
   public static String endsWith(String suffix) {
     Objects.requireNonNull(suffix, "suffix");
     argThat(
-        argument -> argument instanceof String && ((String) argument).endsWith(suffix),
+        argument -> argument instanceof String s && s.endsWith(suffix),
         "endsWith(\"" + suffix + "\")");
     return null;
   }

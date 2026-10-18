@@ -50,7 +50,7 @@ public final class MockState {
     active = false;
   }
 
-  void record(Invocation invocation) {
+  void recordInvocation(Invocation invocation) {
     invocations.add(invocation);
   }
 

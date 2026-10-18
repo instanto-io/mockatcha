@@ -67,8 +67,7 @@ public final class InOrderImpl implements InOrder {
     List<Invocation> remaining = unverified();
     List<Invocation> matched = matchesIn(remaining, mock, pattern);
 
-    if (mode instanceof CountingMode) {
-      CountingMode counting = (CountingMode) mode;
+    if (mode instanceof CountingMode counting) {
       rejectUnorderable(counting);
       if (counting.kind() == CountingMode.Kind.EXACT) {
         List<Invocation> run = firstRunIn(remaining, mock, pattern);

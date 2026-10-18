@@ -16,6 +16,8 @@ import io.instanto.mockatcha.VerificationMode;
  */
 public final class CountingMode implements VerificationMode {
 
+  private static final String INVOCATIONS_OF = " invocation(s) of ";
+
   public enum Kind {
     EXACT,
     AT_LEAST,
@@ -67,20 +69,19 @@ public final class CountingMode implements VerificationMode {
   public void verify(VerificationContext context) {
     int actual = context.matchingCount();
     switch (kind) {
-      case EXACT:
-      case ONLY:
+      case EXACT, ONLY:
         if (actual != count) {
-          throw failure(context, "Wanted " + count + " invocation(s) of ", actual);
+          throw failure(context, "Wanted " + count + INVOCATIONS_OF, actual);
         }
         break;
       case AT_LEAST:
         if (actual < count) {
-          throw failure(context, "Wanted at least " + count + " invocation(s) of ", actual);
+          throw failure(context, "Wanted at least " + count + INVOCATIONS_OF, actual);
         }
         break;
       case AT_MOST:
         if (actual > count) {
-          throw failure(context, "Wanted at most " + count + " invocation(s) of ", actual);
+          throw failure(context, "Wanted at most " + count + INVOCATIONS_OF, actual);
         }
         break;
       default:

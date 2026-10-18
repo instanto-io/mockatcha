@@ -27,6 +27,7 @@ import org.teavm.interop.PlatformMarker;
  * hours()}, {@code getHours()}, or {@code isActive()}, or a visible field. Accessors and fields may
  * be declared or inherited. An unknown property name fails when the matcher is built.
  */
+@SuppressWarnings("java:S2583") // onTeaVm() is substituted by TeaVM compiler at AOT time
 public final class ObjectMatchers {
 
   private ObjectMatchers() {}

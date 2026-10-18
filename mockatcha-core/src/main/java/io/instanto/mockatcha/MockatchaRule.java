@@ -35,6 +35,8 @@ public final class MockatchaRule implements TestRule {
   public Statement apply(Statement base, Description description) {
     return new Statement() {
       @Override
+      @SuppressWarnings(
+          "java:S1181") // Tests and session validation can throw AssertionError or other Throwables
       public void evaluate() throws Throwable {
         Throwable failure = null;
         MockatchaSession session = Mockatcha.session(strict);

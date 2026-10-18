@@ -213,6 +213,7 @@ public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle 
 
     void audit(String employeeId, String note);
 
+    @SuppressWarnings("java:S6213") // Test domain method
     void record(int hours);
 
     Timesheet find(String employeeId);

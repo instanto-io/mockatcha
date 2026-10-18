@@ -158,7 +158,8 @@
             <phase>process-classes</phase>
             <goals><goal>spotbugs</goal></goals>
           </execution>
-        </executions>
+        <execution><id>spotbugs-gate</id><phase>verify</phase><goals><goal>check</goal></goals>
+          <configuration><failThreshold>High</failThreshold></configuration></execution></executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

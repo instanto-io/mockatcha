@@ -77,6 +77,7 @@ public class JvmMocksTest extends MockatchaTestLifecycle {
   }
 
   @Test
+  @SuppressWarnings("java:S5863") // Verifies equals() reflexivity on mock
   public void identityAndDescriptionDoNotReachTheStubs() {
     Store store = mock(Store.class, "store");
     Store other = mock(Store.class);

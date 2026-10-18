@@ -51,6 +51,7 @@ public final class MockRuntime {
   private static final ThreadLocal<Scope> SCOPE = ThreadLocal.withInitial(Scope::new);
   private static final java.util.concurrent.atomic.AtomicInteger SEQUENCE_GENERATOR =
       new java.util.concurrent.atomic.AtomicInteger();
+  private static final String METHOD_NAME_PARAM = "methodName";
 
   private static Scope scope() {
     return SCOPE.get();
@@ -175,6 +176,9 @@ public final class MockRuntime {
   }
 
   /** Validates and releases every mock owned by a lifecycle, even when validation fails. */
+  @SuppressWarnings(
+      "java:S1181") // Stub validation and verification can throw AssertionError or custom
+  // Throwables
   public static void closeSession(Object token) {
     Scope scope = scope();
     SessionContext closing = scope.session;
@@ -201,6 +205,9 @@ public final class MockRuntime {
           state.release();
         }
       }
+      if (scope.states.isEmpty() && scope.uncheckedMocks.isEmpty()) {
+        SCOPE.remove();
+      }
     }
 
     if (failure != null) {
@@ -222,6 +229,7 @@ public final class MockRuntime {
         state.release();
       }
       scope.states.clear();
+      SCOPE.remove();
     } else {
       for (Object mock : scope.uncheckedMocks) {
         MockState state = scope.states.remove(mock);
@@ -391,7 +399,7 @@ public final class MockRuntime {
 
   /** Forgets the calls recorded for one method name, keeping the rest. */
   public static void clearInvocations(Object mock, String methodName) {
-    requireState(mock).clearInvocations(Objects.requireNonNull(methodName, "methodName"));
+    requireState(mock).clearInvocations(Objects.requireNonNull(methodName, METHOD_NAME_PARAM));
     scope().lastInvocation = null;
   }
 
@@ -422,7 +430,7 @@ public final class MockRuntime {
     }
 
     Invocation invocation = new Invocation(state.mock(), method, arguments);
-    state.record(invocation);
+    state.recordInvocation(invocation);
     scope().lastInvocation = new LastInvocation(state, invocation, pattern);
 
     Stub stub = state.findStub(method, arguments);
@@ -580,29 +588,34 @@ public final class MockRuntime {
       if (state == null) {
         throw new IllegalArgumentException("Object is not a Mockatcha mock");
       }
-      List<Stub> unusedStubs = state.unusedStubs();
-      if (!unusedStubs.isEmpty()) {
-        report.append("\n").append(state.description()).append(":");
-      }
-      for (Stub unused : unusedStubs) {
-        report.append("\n  ").append(unused.pattern());
-        List<Invocation> nearby = state.invocationsOf(unused.pattern().methodName());
-        if (nearby.isEmpty()) {
-          report.append("\n    that method was never called");
-        } else {
-          report.append("\n    that method was called with:");
-          for (Invocation invocation : nearby) {
-            report.append("\n      ").append(invocation);
-          }
-        }
-      }
+      appendUnusedStubs(report, state);
     }
 
-    if (report.length() > 0) {
+    if (!report.isEmpty()) {
       throw new AssertionError(
           "These stubs were arranged but never used:"
               + report
               + "\nRemove them, correct their arguments, or arrange them with lenient().");
+    }
+  }
+
+  private static void appendUnusedStubs(StringBuilder report, MockState state) {
+    List<Stub> unusedStubs = state.unusedStubs();
+    if (unusedStubs.isEmpty()) {
+      return;
+    }
+    report.append("\n").append(state.description()).append(":");
+    for (Stub unused : unusedStubs) {
+      report.append("\n  ").append(unused.pattern());
+      List<Invocation> nearby = state.invocationsOf(unused.pattern().methodName());
+      if (nearby.isEmpty()) {
+        report.append("\n    that method was never called");
+      } else {
+        report.append("\n    that method was called with:");
+        for (Invocation invocation : nearby) {
+          report.append("\n      ").append(invocation);
+        }
+      }
     }
   }
 
@@ -649,7 +662,7 @@ public final class MockRuntime {
   public static void arrangeByName(
       Object mock, String methodName, Object[] arguments, List<Answer<?>> answers) {
     MockState state = requireState(mock);
-    Objects.requireNonNull(methodName, "methodName");
+    Objects.requireNonNull(methodName, METHOD_NAME_PARAM);
     Stub stub =
         newStub(
             state,
@@ -663,7 +676,7 @@ public final class MockRuntime {
 
   /** Removes every stub arranged for a method name, so the mock answers as if never stubbed. */
   public static void removeStubsByName(Object mock, String methodName) {
-    requireState(mock).removeStubs(Objects.requireNonNull(methodName, "methodName"));
+    requireState(mock).removeStubs(Objects.requireNonNull(methodName, METHOD_NAME_PARAM));
   }
 
   private static List<RegisteredMatcher> exactMatchers(Object[] arguments) {
