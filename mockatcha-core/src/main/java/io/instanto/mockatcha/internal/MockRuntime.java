@@ -246,12 +246,12 @@ public final class MockRuntime {
     scope.nextStubIsLenient = false;
   }
 
-  /** Rejects a spy created without a delegate. */
   /** Refuses a mock of a class Mockatcha cannot mock, as the JVM implementation does. */
   public static void refuseMock(String message) {
     throw new UnsupportedOperationException(message);
   }
 
+  /** Rejects a spy created without a delegate. */
   public static <T> T requireDelegate(T delegate) {
     if (delegate == null) {
       throw new IllegalArgumentException("spy() requires a real object to delegate to");

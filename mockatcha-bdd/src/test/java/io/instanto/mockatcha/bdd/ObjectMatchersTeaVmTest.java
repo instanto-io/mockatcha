@@ -189,6 +189,7 @@ public class ObjectMatchersTeaVmTest {
       return "Engineering";
     }
 
+    @SuppressWarnings("java:S1144")
     private String secret() {
       return secret;
     }

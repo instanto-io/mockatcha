@@ -8,5 +8,6 @@ package io.instanto.mockatcha;
 /** Computes a result from a call's single argument. */
 @FunctionalInterface
 public interface Answer1<T, A> {
+  @SuppressWarnings("java:S112")
   T answer(A argument) throws Throwable;
 }

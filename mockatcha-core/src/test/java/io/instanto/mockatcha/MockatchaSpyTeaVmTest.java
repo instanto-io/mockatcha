@@ -224,6 +224,7 @@ public class MockatchaSpyTeaVmTest extends MockatchaTestLifecycle {
     assertEquals(2, real.count());
   }
 
+  @SuppressWarnings({"java:S1172", "java:S6213"})
   public static class PricingService {
 
     private final String currency;

@@ -31,6 +31,7 @@ public final class BDDMockatcha {
   private BDDMockatcha() {}
 
   /** Begins configuration of the call just evaluated, as {@code when} does. */
+  @SuppressWarnings("java:S1172")
   public static <T> BDDOngoingStubbing<T> given(T ignored) {
     return new BDDOngoingStubbingImpl<>(MockRuntime.when());
   }

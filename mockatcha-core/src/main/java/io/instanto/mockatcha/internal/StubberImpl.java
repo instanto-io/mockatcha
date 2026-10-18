@@ -16,7 +16,9 @@ public final class StubberImpl implements Stubber {
 
   private final List<Answer<?>> answers = new ArrayList<>();
 
-  public StubberImpl() {}
+  public StubberImpl() {
+    // Default constructor
+  }
 
   @Override
   public Stubber doReturn(Object value) {

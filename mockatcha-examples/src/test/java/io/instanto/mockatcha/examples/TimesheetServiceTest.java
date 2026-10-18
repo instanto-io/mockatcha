@@ -99,10 +99,9 @@ public class TimesheetServiceTest {
     when(timesheets.findDraft("A-17"))
         .thenThrow(new IllegalStateException("Timesheet store is unavailable"));
 
+    TimesheetService service = new TimesheetService(timesheets, approvals);
     IllegalStateException failure =
-        assertThrows(
-            IllegalStateException.class,
-            () -> new TimesheetService(timesheets, approvals).submit("A-17"));
+        assertThrows(IllegalStateException.class, () -> service.submit("A-17"));
 
     assertEquals("Timesheet store is unavailable", failure.getMessage());
     verify(approvals, never()).requestReview(eq("A-17"), anyInt());

@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
  * {@code float}, {@code short}, or {@code byte} argument is served by the {@code int} or {@code
  * double} form, which Java widens at the call site.
  */
+@SuppressWarnings("java:S1172")
 public final class AdditionalMatchers {
 
   private AdditionalMatchers() {}
@@ -257,7 +258,7 @@ public final class AdditionalMatchers {
     Objects.requireNonNull(regularExpression, "regularExpression");
     Pattern pattern = Pattern.compile(regularExpression);
     ArgumentMatchers.argThat(
-        argument -> argument instanceof String && pattern.matcher((String) argument).find(),
+        argument -> argument instanceof String string && pattern.matcher(string).find(),
         "find(\"" + regularExpression + "\")");
     return null;
   }
@@ -352,7 +353,7 @@ public final class AdditionalMatchers {
         || argument instanceof Long) {
       return Long.compare(((Number) argument).longValue(), bound);
     }
-    return Double.compare(((Number) argument).doubleValue(), (double) bound);
+    return Double.compare(((Number) argument).doubleValue(), bound);
   }
 
   private static <T extends Comparable<T>> T compareTo(T bound, String operator) {
@@ -390,8 +391,8 @@ public final class AdditionalMatchers {
   }
 
   private static String describe(Object array) {
-    if (array instanceof Object[]) {
-      return java.util.Arrays.deepToString((Object[]) array);
+    if (array instanceof Object[] objectArray) {
+      return java.util.Arrays.deepToString(objectArray);
     }
     return String.valueOf(array);
   }

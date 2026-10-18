@@ -81,9 +81,9 @@ public class BddSpyTeaVmTest {
   @Test
   public void refusesAnEmptyReturnSequence() {
     PricingService pricing = mock(PricingService.class);
+    var spyConfig = spyOn(pricing, "currency");
 
-    assertThrows(
-        IllegalArgumentException.class, () -> spyOn(pricing, "currency").andReturnValues());
+    assertThrows(IllegalArgumentException.class, spyConfig::andReturnValues);
   }
 
   @Test
@@ -151,8 +151,9 @@ public class BddSpyTeaVmTest {
     PricingService pricing = mock(PricingService.class);
     pricing.total("A-17");
 
+    var totalCalls = calls(pricing, "total");
     IndexOutOfBoundsException failure =
-        assertThrows(IndexOutOfBoundsException.class, () -> calls(pricing, "total").argsFor(4));
+        assertThrows(IndexOutOfBoundsException.class, () -> totalCalls.argsFor(4));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("only 1"));
   }
@@ -207,13 +208,15 @@ public class BddSpyTeaVmTest {
 
   @Test
   public void refusesAnObjectThatIsNotAMock() {
+    var nonMock = new PricingService();
     IllegalArgumentException failure =
-        assertThrows(IllegalArgumentException.class, () -> spyOn(new PricingService(), "currency"));
+        assertThrows(IllegalArgumentException.class, () -> spyOn(nonMock, "currency"));
 
     assertTrue(
         failure.getMessage(), failure.getMessage().contains("Mockatcha.mock or Mockatcha.spy"));
   }
 
+  @SuppressWarnings("java:S1172")
   public static class PricingService {
 
     private int currencyCalls;

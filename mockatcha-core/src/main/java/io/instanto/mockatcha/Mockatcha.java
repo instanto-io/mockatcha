@@ -99,6 +99,7 @@ public final class Mockatcha {
   }
 
   /** Begins configuration of the most recently evaluated mock invocation. */
+  @SuppressWarnings("java:S1172")
   public static <T> OngoingStubbing<T> when(T ignored) {
     return MockRuntime.when();
   }

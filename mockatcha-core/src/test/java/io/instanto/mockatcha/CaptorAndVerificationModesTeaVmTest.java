@@ -136,10 +136,10 @@ public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle 
     verify(repository, atLeast(3)).record(ArgumentMatchers.anyInt());
     verify(repository, atLeastOnce()).record(ArgumentMatchers.anyInt());
 
+    Repository atLeastVerifier = verify(repository, atLeast(4));
+    int anyInt = ArgumentMatchers.anyInt();
     AssertionError failure =
-        assertThrows(
-            AssertionError.class,
-            () -> verify(repository, atLeast(4)).record(ArgumentMatchers.anyInt()));
+        assertThrows(AssertionError.class, () -> atLeastVerifier.record(anyInt));
     assertTrue(failure.getMessage(), failure.getMessage().contains("at least 4"));
   }
 
@@ -153,10 +153,10 @@ public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle 
     verify(repository, atMost(5)).record(ArgumentMatchers.anyInt());
     verify(repository, atMost(0)).audit(anyString(), anyString());
 
+    Repository atMostVerifier = verify(repository, atMost(1));
+    int anyInt = ArgumentMatchers.anyInt();
     AssertionError failure =
-        assertThrows(
-            AssertionError.class,
-            () -> verify(repository, atMost(1)).record(ArgumentMatchers.anyInt()));
+        assertThrows(AssertionError.class, () -> atMostVerifier.record(anyInt));
     assertTrue(failure.getMessage(), failure.getMessage().contains("at most 1"));
   }
 
@@ -174,8 +174,8 @@ public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle 
     repository.record(38);
     repository.audit("A-17", "submitted");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(repository, only()).record(38));
+    Repository onlyVerifier = verify(repository, only());
+    AssertionError failure = assertThrows(AssertionError.class, () -> onlyVerifier.record(38));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("only call"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("1 other call"));
@@ -187,7 +187,8 @@ public class CaptorAndVerificationModesTeaVmTest extends MockatchaTestLifecycle 
     repository.record(38);
     repository.record(38);
 
-    assertThrows(AssertionError.class, () -> verify(repository, only()).record(38));
+    Repository onlyVerifier = verify(repository, only());
+    assertThrows(AssertionError.class, () -> onlyVerifier.record(38));
   }
 
   @Test

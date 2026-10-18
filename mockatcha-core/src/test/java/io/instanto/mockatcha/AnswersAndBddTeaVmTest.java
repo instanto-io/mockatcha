@@ -76,6 +76,7 @@ public class AnswersAndBddTeaVmTest extends MockatchaTestLifecycle {
   }
 
   @Test
+  @SuppressWarnings("java:S1612")
   public void computesAResultWithoutCastingTheArgument() {
     Store store = mock(Store.class);
 

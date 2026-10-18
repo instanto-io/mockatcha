@@ -31,7 +31,7 @@ public final class BddMatchers {
   public static String stringContaining(String substring) {
     Objects.requireNonNull(substring, "substring");
     argThat(
-        argument -> argument instanceof String && ((String) argument).contains(substring),
+        argument -> argument instanceof String string && string.contains(substring),
         "stringContaining(\"" + substring + "\")");
     return null;
   }
@@ -40,7 +40,7 @@ public final class BddMatchers {
   public static String stringMatching(String regularExpression) {
     Pattern pattern = Pattern.compile(Objects.requireNonNull(regularExpression, "regex"));
     argThat(
-        argument -> argument instanceof String && pattern.matcher((String) argument).find(),
+        argument -> argument instanceof String string && pattern.matcher(string).find(),
         "stringMatching(\"" + regularExpression + "\")");
     return null;
   }
@@ -139,6 +139,7 @@ public final class BddMatchers {
     return actual == null ? -1 : actual.size();
   }
 
+  @SuppressWarnings("java:S1168")
   private static Collection<?> asCollection(Object argument) {
     if (argument instanceof Collection) {
       return (Collection<?>) argument;

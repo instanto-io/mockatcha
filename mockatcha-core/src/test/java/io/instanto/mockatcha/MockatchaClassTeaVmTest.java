@@ -279,6 +279,7 @@ public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
     verify(report).auditTrail();
   }
 
+  @SuppressWarnings({"java:S1172", "java:S6213"})
   public static class PricingService {
 
     private final boolean constructed;
@@ -404,6 +405,7 @@ public class MockatchaClassTeaVmTest extends MockatchaTestLifecycle {
     }
   }
 
+  @SuppressWarnings("java:S1172")
   public static class Primitives {
 
     public boolean asBoolean() {

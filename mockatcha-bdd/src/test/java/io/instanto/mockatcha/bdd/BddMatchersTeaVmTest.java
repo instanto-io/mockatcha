@@ -183,6 +183,7 @@ public class BddMatchersTeaVmTest {
     assertEquals("present", audit.record("anything"));
   }
 
+  @SuppressWarnings("java:S6213")
   public interface Audit {
 
     String record(String note);

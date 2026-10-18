@@ -234,7 +234,8 @@ public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
 
   @Test
   public void refusesAnObjectThatIsNotAMock() {
-    assertThrows(IllegalArgumentException.class, () -> validateStubbing(new Object()));
+    var notAMock = new Object();
+    assertThrows(IllegalArgumentException.class, () -> validateStubbing(notAMock));
   }
 
   public interface Store {
@@ -244,6 +245,7 @@ public class StrictStubbingTeaVmTest extends MockatchaTestLifecycle {
     void audit(String note);
   }
 
+  @SuppressWarnings("java:S1172")
   public static class RealStore {
 
     public String find(String id) {

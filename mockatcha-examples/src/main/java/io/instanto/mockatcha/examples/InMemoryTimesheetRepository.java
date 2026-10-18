@@ -22,7 +22,9 @@ public class InMemoryTimesheetRepository implements TimesheetRepository {
   private final Map<String, Timesheet> drafts = new HashMap<>();
   private final List<String> submitted = new ArrayList<>();
 
-  public InMemoryTimesheetRepository() {}
+  public InMemoryTimesheetRepository() {
+    // Empty repository initially
+  }
 
   public void addDraft(Timesheet timesheet) {
     drafts.put(timesheet.employeeId(), timesheet);

@@ -28,8 +28,8 @@ public class IdentityParityTeaVmTest extends MockatchaTestLifecycle {
   public void namesParameterTypesTheSameOnBothPlatforms() {
     Reports reports = mock(Reports.class);
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(reports).combine("a", 1));
+    Reports verifier = verify(reports);
+    AssertionError failure = assertThrows(AssertionError.class, () -> verifier.combine("a", 1));
 
     assertTrue(
         failure.getMessage(), failure.getMessage().contains("combine(java.lang.String,int)"));
@@ -39,8 +39,9 @@ public class IdentityParityTeaVmTest extends MockatchaTestLifecycle {
   public void namesAnArrayParameterTheSameOnBothPlatforms() {
     Reports reports = mock(Reports.class);
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(reports).summarise(new String[] {"a"}));
+    Reports verifier = verify(reports);
+    var names = new String[] {"a"};
+    AssertionError failure = assertThrows(AssertionError.class, () -> verifier.summarise(names));
 
     assertTrue(
         failure.getMessage(), failure.getMessage().contains("summarise([Ljava.lang.String;)"));

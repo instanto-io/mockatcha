@@ -113,8 +113,9 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
     repository.save("report");
     repository.audit("done");
 
+    Repository verifier = verify(repository);
     AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(repository).save("something else"));
+        assertThrows(AssertionError.class, () -> verifier.save("something else"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("Calls recorded on this mock"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("save"));
@@ -125,8 +126,8 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
   public void aFailureSaysSoWhenNothingWasCalled() {
     Repository repository = mock(Repository.class);
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(repository).save("report"));
+    Repository verifier = verify(repository);
+    AssertionError failure = assertThrows(AssertionError.class, () -> verifier.save("report"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("No calls were recorded"));
   }
@@ -136,7 +137,8 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
     Repository repository = mock(Repository.class);
     repository.save("report");
 
-    assertThrows(AssertionError.class, () -> verify(repository, times(2)).save("report"));
+    Repository times2Verifier = verify(repository, times(2));
+    assertThrows(AssertionError.class, () -> times2Verifier.save("report"));
     assertThrows(AssertionError.class, () -> verifyNoMoreInteractions(repository));
 
     verify(repository).save("report");
@@ -334,7 +336,7 @@ public class InteractionsAndMatchersTeaVmTest extends MockatchaTestLifecycle {
     plain.describe(anyString());
 
     IllegalStateException failure =
-        assertThrows(IllegalStateException.class, () -> verify(repository).describe("anything"));
+        assertThrows(IllegalStateException.class, () -> verify(repository));
     assertTrue(failure.getMessage(), failure.getMessage().contains("left over"));
     assertTrue(failure.getMessage(), failure.getMessage().contains("anyString()"));
   }

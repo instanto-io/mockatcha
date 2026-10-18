@@ -50,8 +50,8 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
 
     InOrder order = inOrder(repository, notifications);
     order.verify(repository).save("report");
-
-    assertThrows(AssertionError.class, () -> order.verify(notifications).send("saved"));
+    Notifications notifVerifier = order.verify(notifications);
+    assertThrows(AssertionError.class, () -> notifVerifier.send("saved"));
   }
 
   @Test
@@ -89,7 +89,8 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
     InOrder order = inOrder(repository);
     order.verify(repository).save("report");
 
-    assertThrows(AssertionError.class, () -> order.verify(repository).save("report"));
+    Repository repoVerifier = order.verify(repository);
+    assertThrows(AssertionError.class, () -> repoVerifier.save("report"));
   }
 
   @Test
@@ -154,8 +155,8 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
 
     InOrder order = inOrder(repository);
     order.verify(repository, atLeast(2)).save("report");
-    assertThrows(
-        AssertionError.class, () -> order.verify(repository, atLeastOnce()).save("report"));
+    Repository atLeastOnceVerifier = order.verify(repository, atLeastOnce());
+    assertThrows(AssertionError.class, () -> atLeastOnceVerifier.save("report"));
   }
 
   @Test
@@ -212,10 +213,11 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
     repository.save("report");
     InOrder order = inOrder(repository);
 
-    assertThrows(
-        IllegalArgumentException.class, () -> order.verify(repository, atMost(1)).save("report"));
-    assertThrows(
-        IllegalArgumentException.class, () -> order.verify(repository, only()).save("report"));
+    Repository atMostVerifier = order.verify(repository, atMost(1));
+    assertThrows(IllegalArgumentException.class, () -> atMostVerifier.save("report"));
+
+    Repository onlyVerifier = order.verify(repository, only());
+    assertThrows(IllegalArgumentException.class, () -> onlyVerifier.save("report"));
   }
 
   @Test
@@ -224,12 +226,13 @@ public class InOrderTeaVmTest extends MockatchaTestLifecycle {
     Notifications notifications = mock(Notifications.class);
     InOrder order = inOrder(repository);
 
-    assertThrows(IllegalArgumentException.class, () -> order.verify(notifications).send("saved"));
+    assertThrows(IllegalArgumentException.class, () -> order.verify(notifications));
   }
 
   @Test
   public void refusesObjectsThatAreNotMocks() {
-    assertThrows(IllegalArgumentException.class, () -> inOrder(new Object()));
+    var notAMock = new Object();
+    assertThrows(IllegalArgumentException.class, () -> inOrder(notAMock));
     assertThrows(IllegalArgumentException.class, Mockatcha::inOrder);
   }
 

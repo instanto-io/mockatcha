@@ -107,6 +107,7 @@ public class MockatchaTeaVmTest extends MockatchaTestLifecycle {
     verify(greetings).hello("Carl");
   }
 
+  @SuppressWarnings("java:S6213")
   interface GreetingService {
     String hello(String name);
 

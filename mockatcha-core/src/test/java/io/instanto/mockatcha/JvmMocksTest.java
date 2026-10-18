@@ -40,7 +40,9 @@ public class JvmMocksTest extends MockatchaTestLifecycle {
     }
 
     @Override
-    public void clear() {}
+    public void clear() {
+      // No-op for test
+    }
   }
 
   @Test

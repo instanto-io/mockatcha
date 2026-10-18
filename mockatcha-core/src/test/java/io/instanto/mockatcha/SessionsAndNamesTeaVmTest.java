@@ -47,7 +47,8 @@ public class SessionsAndNamesTeaVmTest {
   public void aNamedMockAppearsInItsVerificationFailure() {
     Store store = mock(Store.class, "timesheet store");
 
-    AssertionError failure = assertThrows(AssertionError.class, () -> verify(store).find("A-17"));
+    Store verifier = verify(store);
+    AssertionError failure = assertThrows(AssertionError.class, () -> verifier.find("A-17"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("timesheet store"));
   }
@@ -61,8 +62,8 @@ public class SessionsAndNamesTeaVmTest {
   public void namedSpiesUseTheSameDiagnosticPath() {
     Store store = spy(Store.class, id -> "real " + id, "real store boundary");
 
-    AssertionError failure =
-        assertThrows(AssertionError.class, () -> verify(store).find("missing"));
+    Store verifier = verify(store);
+    AssertionError failure = assertThrows(AssertionError.class, () -> verifier.find("missing"));
 
     assertTrue(failure.getMessage(), failure.getMessage().contains("real store boundary"));
   }

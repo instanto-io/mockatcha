@@ -14,7 +14,9 @@ public final class BDDStubberImpl implements BDDStubber {
 
   private final Stubber stubber = new StubberImpl();
 
-  public BDDStubberImpl() {}
+  public BDDStubberImpl() {
+    // Default constructor
+  }
 
   @Override
   public BDDStubber willReturn(Object value) {

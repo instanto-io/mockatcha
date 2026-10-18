@@ -72,10 +72,9 @@ public class TimesheetSpyTest {
         .when(timesheets)
         .markSubmitted("A-17");
 
+    TimesheetService service = new TimesheetService(timesheets, mock(ApprovalGateway.class));
     IllegalStateException failure =
-        assertThrows(
-            IllegalStateException.class,
-            () -> new TimesheetService(timesheets, mock(ApprovalGateway.class)).submit("A-17"));
+        assertThrows(IllegalStateException.class, () -> service.submit("A-17"));
 
     assertEquals("Timesheet store is unavailable", failure.getMessage());
     assertEquals(List.of(), real.submitted());
