@@ -12,6 +12,7 @@ import static org.teavm.metaprogramming.Metaprogramming.environment;
 import static org.teavm.metaprogramming.Metaprogramming.exit;
 import static org.teavm.metaprogramming.Metaprogramming.handle;
 import static org.teavm.metaprogramming.Metaprogramming.proxy;
+import static org.teavm.metaprogramming.Metaprogramming.unsupportedCase;
 
 import io.instanto.mockatcha.internal.MockRuntime;
 import io.instanto.mockatcha.internal.MockState;
@@ -47,21 +48,46 @@ public final class TeaVmMocks {
   public static native <T> T spy(Class<T> type, T delegate, String name);
 
   static <T> void mock(IntrospectClass<T> type) {
+    if (!named(type)) {
+      return;
+    }
     generate(type, null, defaultDescription(type, false));
   }
 
   static <T> void mock(IntrospectClass<T> type, Value<String> name) {
+    if (!named(type)) {
+      return;
+    }
     generate(type, null, namedDescription(type, name, false));
   }
 
   static <T> void spy(IntrospectClass<T> type, Value<T> delegate) {
+    if (!named(type)) {
+      return;
+    }
     emit(() -> MockRuntime.requireDelegate(delegate.get()));
     generate(type, delegate, defaultDescription(type, true));
   }
 
   static <T> void spy(IntrospectClass<T> type, Value<T> delegate, Value<String> name) {
+    if (!named(type)) {
+      return;
+    }
     emit(() -> MockRuntime.requireDelegate(delegate.get()));
     generate(type, delegate, namedDescription(type, name, true));
+  }
+
+  /**
+   * Whether the program names this type at a call to {@code Mockatcha}. TeaVM offers the generator
+   * every class its analysis lets reach the class argument, which can be every class in the
+   * program; only the ones named are generated.
+   */
+  private static boolean named(IntrospectClass<?> type) {
+    if (MockedTypes.isDeclared(type.name())) {
+      return true;
+    }
+    unsupportedCase();
+    return false;
   }
 
   /** Emits the mock or spy for one call site. */

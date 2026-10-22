@@ -25,8 +25,10 @@ Sarto Edge's `MiniflareTestRunner` uses this to test edge services in Miniflare.
 TeaVM compiles the complete program ahead of time, so Mockatcha generates each
 mock while TeaVM compiles the test. This leads to two rules there:
 
-- Pass a class literal, such as `mock(ProfileRepository.class)`, so Mockatcha can
-  identify the type during compilation.
+- Pass a class literal, such as `mock(ProfileRepository.class)`. Mockatcha
+  generates mocks only for the types named this way, so a build carries the mocks
+  its tests ask for and no others. Passing any other class value is a compile
+  error.
 - An invalid request, such as a final class, records the broken rule during
   compilation and throws `IllegalArgumentException` when that `mock` or `spy`
   call runs.

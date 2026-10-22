@@ -55,6 +55,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <!-- MockedTypesPlugin: records, as TeaVM loads each class, the types its tests mock. -->
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.teavm</groupId>
       <artifactId>teavm-classlib</artifactId>
       <scope>test</scope>
