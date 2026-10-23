@@ -27,8 +27,9 @@ mock while TeaVM compiles the test. This leads to two rules there:
 
 - Pass a class literal, such as `mock(ProfileRepository.class)`. Mockatcha
   generates mocks only for the types named this way, so a build carries the mocks
-  its tests ask for and no others. Passing any other class value is a compile
-  error.
+  its tests ask for and no others. A helper of your own may pass its class
+  parameter on, if it is static, private or final: Mockatcha follows it back to
+  the literal its caller passes. Any other class value is a compile error.
 - An invalid request, such as a final class, records the broken rule during
   compilation and throws `IllegalArgumentException` when that `mock` or `spy`
   call runs.

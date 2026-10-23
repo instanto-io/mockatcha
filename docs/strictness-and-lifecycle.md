@@ -164,9 +164,10 @@ Mockatcha works with interfaces and with classes that satisfy three conditions:
 - the methods to replace are public or protected instance methods.
 
 Static, private, and final methods retain their real behaviour. Pass the type as
-a class literal, for example `mock(ProfileRepository.class)`; TeaVM generates
-mocks only for the types named by literals, and any other class value is a
-compile error. An invalid request names the type
+a class literal, for example `mock(ProfileRepository.class)`, or through a
+static, private or final helper whose callers pass one; TeaVM generates mocks
+only for the types named by literals, and any other class value is a compile
+error. An invalid request names the type
 and the rule it broke when the test runs on both TeaVM and a JVM. A JVM also
 needs the class's package open to Mockatcha, which holds on the class path.
 
