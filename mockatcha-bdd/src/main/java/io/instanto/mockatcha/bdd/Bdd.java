@@ -43,6 +43,37 @@ public final class Bdd {
     return new CallLog(mock, methodName, MockAccess.invocations(mock, methodName), methodName);
   }
 
+  /** Begins a fluent expectation on any value or mock. */
+  public static <T> ValueExpectation<T> expect(T actual) {
+    return new ValueExpectation<>(actual, false);
+  }
+
+  /** Begins a fluent expectation on a call log. */
+  public static CallLogExpectation expect(CallLog calls) {
+    return new CallLogExpectation(calls, false);
+  }
+
+  /** Begins a fluent expectation on a method spy. */
+  public static SpyExpectation expect(Spy spy) {
+    return new SpyExpectation(spy, false);
+  }
+
+  /** Begins a fluent expectation on one method of a mock. */
+  public static SpyExpectation expect(Object mock, String methodName) {
+    requireMock(mock, "expect");
+    return new SpyExpectation(mock, methodName, false);
+  }
+
+  /** Begins a fluent expectation on an action that may throw an exception. */
+  public static ThrowingExpectation expect(ThrowingRunnable action) {
+    return new ThrowingExpectation(action, false);
+  }
+
+  /** Starts a Given-When-Then BDD scenario flow with a title. */
+  public static Scenario scenario(String title) {
+    return Scenario.scenario(title);
+  }
+
   private static void requireMock(Object mock, String operation) {
     if (!MockAccess.isMock(mock)) {
       throw new IllegalArgumentException(

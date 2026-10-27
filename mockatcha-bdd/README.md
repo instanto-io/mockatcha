@@ -8,8 +8,8 @@ spies created by Mockatcha, and can be mixed with the core API in the same test.
 PricingService pricing = mock(PricingService.class);
 spyOn(pricing, "currency").andReturn("EUR");
 
-assertEquals("EUR", pricing.currency());
-assertEquals(1, calls(pricing, "currency").count());
+expect(pricing.currency()).toBe("EUR");
+expect(pricing, "currency").toHaveBeenCalledTimes(1);
 ```
 
 ## Use the module
@@ -139,4 +139,74 @@ You can also read a property directly:
 ```java
 PropertyReader<Timesheet> reader = propertiesOf(Timesheet.class);
 assertEquals("A-17", reader.read(saved.getValue(), "employeeId"));
+```
+
+## Express expectations
+
+The `expect(...)` API provides Jasmine/Jest-style fluent assertions that compile cleanly on both the JVM and TeaVM:
+
+### Values and collections
+
+```java
+expect(submission.hours()).toBe(38);
+expect(submission.reviewRequired()).toBeFalse();
+expect(submission.notes()).toContain("timesheet");
+expect(submission.tags()).toHaveSize(2);
+expect(submission.employeeId()).toMatch("^A-\\d+$");
+
+// Inverted expectations
+expect(submission.hours()).not().toBeGreaterThan(40);
+expect(submission.id()).toBeNotNull();
+```
+
+### Mocks and spies
+
+```java
+expect(pricing, "currency").toHaveBeenCalled();
+expect(pricing, "currency").toHaveBeenCalledTimes(1);
+expect(pricing, "total").toHaveBeenCalledWith("A-17");
+expect(pricing, "total").toHaveBeenLastCalledWith("A-18");
+expect(pricing, "total").toHaveBeenNthCalledWith(1, "A-17");
+
+// Whole mock checks
+expect(approvals).toHaveNoInteractions();
+expect(calls(pricing, "currency")).toHaveCount(1);
+```
+
+### Exceptions
+
+```java
+expect(() -> service.submit("UNKNOWN"))
+    .toThrow(IllegalStateException.class, "No draft timesheet");
+
+expect(() -> service.submit("A-17")).not().toThrow();
+```
+
+## Structure Given-When-Then scenarios
+
+The `scenario(...)` builder structures test execution into standard BDD narrative steps with step descriptions, typed value passing, and contextual error diagnostics:
+
+```java
+scenario("High hours trigger an approval review")
+    .given("a draft timesheet with 48 hours", () -> {
+        given(timesheets.findDraft("A-17")).willReturn(new Timesheet("A-17", 48));
+    })
+    .when("the timesheet is submitted", () -> service.submit("A-17"))
+    .then("it flags that a review is required", submission -> {
+        expect(submission.reviewRequired()).toBeTrue();
+        expect(submission.hours()).toBeGreaterThan(40);
+    })
+    .and("dispatches a review request to the approval gateway", () -> {
+        expect(approvals, "requestReview").toHaveBeenCalledWith("A-17", 48);
+    })
+    .and("marks the timesheet submitted in repository", () -> {
+        expect(timesheets, "markSubmitted").toHaveBeenCalledWith("A-17");
+    });
+```
+
+If any step fails, the failure message pinpoints the exact step and scenario:
+
+```text
+[Scenario] "High hours trigger an approval review"
+  Step failed [then: it flags that a review is required]: Expected: <true> but was: <false>
 ```
