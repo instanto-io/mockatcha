@@ -27,7 +27,16 @@ from scratch. Its tests show:
    and
 4. mocking that same concrete class when no real behaviour is wanted.
 
-[`SparklineTest`](src/test/java/io/instanto/mockatcha/examples/SparklineTest.java)
+Next read
+[`TimesheetBddScenarioTest`](src/test/java/io/instanto/mockatcha/examples/TimesheetBddScenarioTest.java),
+which expresses business domain rules as executable Given-When-Then scenarios using `mockatcha-bdd`:
+
+1. structure tests into readable `scenario("...")` steps (`given`, `when`, `then`, `and`);
+2. pass results directly from `when(Supplier<R>)` into `then(Consumer<R>)` with compile-time type safety;
+3. use fluent `expect(...)` assertions for values, mocks, spies, and exceptions; and
+4. get detailed step-level diagnostics in JVM and browser test logs if a step fails.
+
+Finally, [`SparklineTest`](src/test/java/io/instanto/mockatcha/examples/SparklineTest.java)
 is the case for testing in a browser at all. `Sparkline` draws to a canvas, so
 there is no JVM test to write; the readings it draws are mocked, the canvas is
 real, and the assertions read pixels back from it.

@@ -71,7 +71,7 @@ example, imports, TeaVM dependencies, and Surefire configuration.
 | Module | Use it for |
 | --- | --- |
 | `mockatcha-core` | Mocks, spies, verification and lifecycle support. |
-| `mockatcha-bdd` | [Call logs, value matchers and method-name stubbing](mockatcha-bdd/README.md). |
+| `mockatcha-bdd` | [BDD Given-When-Then scenarios, fluent expect assertions, call logs, and method spies](mockatcha-bdd/README.md). |
 | `mockatcha-examples` | [Executable examples](mockatcha-examples/README.md). |
 
 [Webapp Testkit](https://github.com/instanto-io/webapp-testkit) provides DOM
@@ -97,9 +97,10 @@ chapter:
 ## Examples
 
 The examples module tests a `TimesheetService` with mocked storage and approval
-boundaries, a concrete-class spy, and a browser canvas. Its
-[reading order and run command](mockatcha-examples/README.md) cover the public
-API from basic stubbing through browser-specific tests.
+boundaries, executable BDD Given-When-Then scenarios, a concrete-class spy, and a
+browser canvas. Its [reading order and run command](mockatcha-examples/README.md)
+cover the public API from basic stubbing and BDD scenarios through browser-specific
+tests.
 
 ## A few things to know
 
