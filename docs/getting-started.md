@@ -126,10 +126,8 @@ mvn test -Dmockatcha.test.browser=browser-firefox
 
 That setting expects the external command `firefox` to be available instead.
 
-Downstream projects can use the snapshots published at `packages.instanto.io`.
-The registry serves all Instanto artifacts by Maven coordinate from one URL.
-
-When working from a clone, install the artifacts locally first:
+Mockatcha is not yet published to Maven Central. Until it is, install it
+locally from a clone before a downstream project uses it:
 
 ```bash
 ./mvnw install
