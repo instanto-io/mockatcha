@@ -133,6 +133,12 @@ ordinary classpath tests need no extra setting. See
 [strictness and lifecycle](docs/strictness-and-lifecycle.md) for cleanup
 choices, including `releaseMocks()`.
 
+## Quality
+
+SpotBugs runs on every build. High-priority findings fail the build, and all findings are published to [code scanning](https://github.com/instanto-io/mockatcha/security/code-scanning). SonarQube analysis runs on `main` against the organisation's private instance; maintainers see the gate, coverage and issue counts in the workflow summary. The Sonar quality gate is advisory, so a snapshot still publishes when only that gate fails.
+
+See [Actions](https://github.com/instanto-io/mockatcha/actions) for the latest verification and quality summary.
+
 ## Credits
 
 Thank you to the people behind the projects whose ideas inform Mockatcha:
