@@ -20,17 +20,6 @@
   <description>Mockito-like mocking for TeaVM and Java-based browser testing for web applications built with any stack.</description>
   <url>https://github.com/instanto-io/mockatcha</url>
 
-  <developers>
-    <developer>
-      <id>cstainton</id>
-      <name>Carl Stainton</name>
-      <email>carl@instanto.io</email>
-      <url>https://github.com/cstainton</url>
-      <organization>Instanto</organization>
-      <organizationUrl>https://github.com/instanto-io</organizationUrl>
-    </developer>
-  </developers>
-
   <scm child.scm.connection.inherit.append.path="false"
        child.scm.developerConnection.inherit.append.path="false"
        child.scm.url.inherit.append.path="false">
@@ -51,6 +40,7 @@
   </repositories>
 
   <properties>
+    <instanto.repository>mockatcha</instanto.repository>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
     <junit.version>4.13.2</junit.version>
