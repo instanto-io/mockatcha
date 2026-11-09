@@ -12,14 +12,18 @@ permissions:
 
 jobs:
   verify:
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'workflow_dispatch'
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Verify core and examples in Chrome
       goals: -U clean test
+      downstream-checks: false
+      sonar: false
     secrets: inherit
 
   cross-browser:
     name: Browser tests (${{ matrix.browser_name }})
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -33,23 +37,29 @@ jobs:
       name: Verify the reactor in ${{ matrix.browser_name }}
       goals: -U test
       maven-args: -Dmockatcha.test.browser=${{ matrix.runner }}
+      downstream-checks: false
+      sonar: false
     secrets: inherit
 
   wasm:
     name: WasmGC
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'workflow_dispatch'
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Verify the reactor compiled to WasmGC
       goals: -U test
       maven-args: -Dteavm.junit.wasm-gc=true -Dteavm.junit.wasm-gc.runner=browser-chrome -Dteavm.junit.js=false
+      downstream-checks: false
+      sonar: false
     secrets: inherit
 
   publish-snapshot:
-    if: github.repository == 'instanto-io/mockatcha' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [verify, cross-browser, wasm]
+    if: github.repository == 'instanto-io/mockatcha' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: instanto-io/instanto-poms/.github/workflows/maven-build.yml@main
     with:
       name: Publish Maven snapshot
       goals: -U deploy
-      maven-args: -DskipTests
+      fast-deploy: true
+      downstream-checks: false
+      sonar: false
     secrets: inherit
